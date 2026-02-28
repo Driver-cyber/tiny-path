@@ -811,3 +811,49 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* 1. Thumbnails/Grid for multi-photo */
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.image-grid img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* 2. Smaller images in feed & disabling interaction */
+.post-image {
+  max-height: 350px; /* Prevents giant vertical images */
+  width: auto;
+  max-width: 100%;
+  border-radius: 12px;
+  pointer-events: none; /* Prevents clicks/pops in the feed */
+}
+
+/* 3. Detail View / Modal styles (Re-enable interaction) */
+#imageModal {
+  touch-action: auto; /* Allows zoom here */
+  z-index: 9999;
+}
+
+#modalImage {
+  pointer-events: auto; /* Allows clicking/saving in modal */
+  max-width: 95vw;
+}
+
+/* 4. Disable touch-to-zoom on main feed */
+body {
+  touch-action: pan-y; /* Allows vertical scrolling but prevents pinch-zoom */
+}
+
+/* 5. Link styling */
+.post-link {
+  color: #2e86de;
+  text-decoration: underline;
+}
