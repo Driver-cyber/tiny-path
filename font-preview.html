@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tiny Path — Logo Compositions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@1,700&family=Nunito:ital,wght@0,800;1,400;1,700;1,800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f4f1ee;
+      font-family: system-ui, sans-serif;
+      padding: 30px 16px 60px;
+    }
+
+    h2 {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #aaa;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #bbb;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 18px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .card {
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.11);
+    }
+
+    .topbar {
+      background: linear-gradient(180deg, #c0392b, #a93226);
+      padding: 24px 20px 20px;
+      text-align: center;
+      min-height: 88px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .label {
+      background: #fff;
+      padding: 12px 16px 14px;
+    }
+
+    .label strong {
+      display: block;
+      font-size: 13px;
+      color: #333;
+      margin-bottom: 3px;
+    }
+
+    .label em {
+      font-style: normal;
+      font-size: 12px;
+      color: #bbb;
+      line-height: 1.4;
+      display: block;
+    }
+
+    /* Font shorthands */
+    .nunito    { font-family: 'Nunito', sans-serif; }
+    .gentium   { font-family: 'Gentium Book Plus', serif; }
+
+    /* ── Option 1: All Nunito ExtraBold Italic ── */
+    .opt1 .logo {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-style: italic;
+      font-size: 30px;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+
+    /* ── Option 2: Stacked — "tiny" Nunito light italic / "Path" Gentium ── */
+    .opt2 .logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0px;
+      line-height: 1;
+    }
+    .opt2 .word-tiny {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+      letter-spacing: 3px;
+      text-transform: lowercase;
+    }
+    .opt2 .word-path {
+      font-family: 'Gentium Book Plus', serif;
+      font-weight: 700;
+      font-style: italic;
+      font-size: 38px;
+      color: white;
+    }
+
+    /* ── Option 3: Side by side — "Tiny" Nunito / "Path" Gentium ── */
+    .opt3 .logo {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .opt3 .word-tiny {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-style: italic;
+      font-size: 22px;
+      color: rgba(255,255,255,0.8);
+    }
+    .opt3 .word-path {
+      font-family: 'Gentium Book Plus', serif;
+      font-weight: 700;
+      font-style: italic;
+      font-size: 36px;
+      color: white;
+    }
+
+    /* ── Option 4: Side by side — "Tiny" Gentium / "Path" Nunito ── */
+    .opt4 .logo {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .opt4 .word-tiny {
+      font-family: 'Gentium Book Plus', serif;
+      font-weight: 700;
+      font-style: italic;
+      font-size: 22px;
+      color: rgba(255,255,255,0.8);
+    }
+    .opt4 .word-path {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-style: italic;
+      font-size: 36px;
+      color: white;
+    }
+
+    /* ── Option 5: Stacked — "TINY" spaced Nunito / "Path" Nunito ExtraBold ── */
+    .opt5 .logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      line-height: 1;
+    }
+    .opt5 .word-tiny {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-style: italic;
+      font-size: 13px;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+    .opt5 .word-path {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-style: italic;
+      font-size: 40px;
+      color: white;
+      letter-spacing: -1px;
+    }
+
+    /* ── Option 6: Stacked — "Tiny" Gentium italic / "Path" Nunito ExtraBold ── */
+    .opt6 .logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      line-height: 1;
+    }
+    .opt6 .word-tiny {
+      font-family: 'Gentium Book Plus', serif;
+      font-weight: 700;
+      font-style: italic;
+      font-size: 16px;
+      color: rgba(255,255,255,0.75);
+      letter-spacing: 1px;
+    }
+    .opt6 .word-path {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-style: italic;
+      font-size: 40px;
+      color: white;
+      letter-spacing: -1px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Tiny Path — Logo Compositions</h2>
+  <p class="subtitle">Mixing Nunito ExtraBold Italic &amp; Gentium Book Plus Bold Italic</p>
+
+  <div class="grid">
+
+    <!-- Option 1 -->
+    <div class="card">
+      <div class="topbar opt1">
+        <div class="logo">Tiny Path</div>
+      </div>
+      <div class="label">
+        <strong>All Nunito ExtraBold Italic</strong>
+        <em>Unified and punchy — clean round P, warm and modern throughout</em>
+      </div>
+    </div>
+
+    <!-- Option 2 -->
+    <div class="card">
+      <div class="topbar opt2">
+        <div class="logo">
+          <span class="word-tiny">tiny</span>
+          <span class="word-path">Path</span>
+        </div>
+      </div>
+      <div class="label">
+        <strong>Stacked: "tiny" Nunito light · "Path" Gentium</strong>
+        <em>"tiny" whispers, "Path" commands — intimate hierarchy, journal-like</em>
+      </div>
+    </div>
+
+    <!-- Option 3 -->
+    <div class="card">
+      <div class="topbar opt3">
+        <div class="logo">
+          <span class="word-tiny">Tiny</span>
+          <span class="word-path">Path</span>
+        </div>
+      </div>
+      <div class="label">
+        <strong>Side by side: "Tiny" Nunito · "Path" Gentium</strong>
+        <em>Round leads into classical — friendly opener, elegant finish</em>
+      </div>
+    </div>
+
+    <!-- Option 4 -->
+    <div class="card">
+      <div class="topbar opt4">
+        <div class="logo">
+          <span class="word-tiny">Tiny</span>
+          <span class="word-path">Path</span>
+        </div>
+      </div>
+      <div class="label">
+        <strong>Side by side: "Tiny" Gentium · "Path" Nunito</strong>
+        <em>Classical opener, round finish — "Path" pops with the round P you wanted</em>
+      </div>
+    </div>
+
+    <!-- Option 5 -->
+    <div class="card">
+      <div class="topbar opt5">
+        <div class="logo">
+          <span class="word-tiny">TINY</span>
+          <span class="word-path">Path</span>
+        </div>
+      </div>
+      <div class="label">
+        <strong>Stacked: "TINY" spaced caps · "Path" Nunito ExtraBold</strong>
+        <em>All Nunito — label on top, big round logo below. Feels like a proper brand</em>
+      </div>
+    </div>
+
+    <!-- Option 6 -->
+    <div class="card">
+      <div class="topbar opt6">
+        <div class="logo">
+          <span class="word-tiny">Tiny</span>
+          <span class="word-path">Path</span>
+        </div>
+      </div>
+      <div class="label">
+        <strong>Stacked: "Tiny" Gentium · "Path" Nunito ExtraBold</strong>
+        <em>My pick — elegant serif whisper on top, bold round sans below. Has personality</em>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

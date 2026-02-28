@@ -1,0 +1,247 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  orderBy,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* =========================
+   FIREBASE CONFIG
+========================= */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDa0W3Fi_WIqhAcro_sk0bV8W08l8ut6kw",
+  authDomain: "tiny-path-b9bb4.firebaseapp.com",
+  projectId: "tiny-path-b9bb4",
+  storageBucket: "tiny-path-b9bb4.firebasestorage.app",
+  messagingSenderId: "28600254620",
+  appId: "1:28600254620:web:b1aa7917e4a7735976ed59"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* =========================
+   CLOUDINARY CONFIG
+========================= */
+
+const CLOUD_NAME = "dqqml8dae";
+const UPLOAD_PRESET = "tiny-path-unsigned";
+
+/* =========================
+   DOM ELEMENTS
+========================= */
+
+const postForm = document.getElementById("postForm");
+const textInput = document.getElementById("textInput");
+const imageInput = document.getElementById("imageInput");
+const usernameInput = document.getElementById("usernameInput");
+const feed = document.getElementById("feed");
+const modeButtons = document.querySelectorAll(".mode-btn");
+const locationPreview = document.getElementById("locationPreview");
+
+const modal = document.getElementById("imageModal");
+const modalImage = document.getElementById("modalImage");
+const closeModal = document.getElementById("closeModal");
+
+/* =========================
+   STATE
+========================= */
+
+let currentMode = "text";
+let selectedLocation = null;
+
+/* =========================
+   USERNAME RESTORE
+========================= */
+
+if (localStorage.getItem("tinyPathUsername")) {
+  usernameInput.value = localStorage.getItem("tinyPathUsername");
+}
+
+/* =========================
+   MODE SWITCHING
+========================= */
+
+modeButtons.forEach(btn => {
+  btn.addEventListener("click", async () => {
+    modeButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    currentMode = btn.dataset.mode;
+
+    if (currentMode === "photo") {
+      imageInput.click();
+    }
+
+    if (currentMode === "location") {
+      fetchLocation();
+    }
+  });
+});
+
+/* =========================
+   LOCATION HANDLING
+========================= */
+
+async function fetchLocation() {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+      );
+
+      const data = await res.json();
+
+      const city =
+        data.address.city ||
+        data.address.town ||
+        data.address.village ||
+        "";
+
+      const state = data.address.state || "";
+
+      selectedLocation = `${city}, ${state}`;
+
+      locationPreview.textContent = `📍 ${selectedLocation}`;
+      locationPreview.classList.remove("hidden");
+
+    } catch (err) {
+      alert("Could not fetch location name.");
+    }
+
+  }, () => {
+    alert("Location permission denied.");
+  });
+}
+
+/* =========================
+   POST SUBMIT
+========================= */
+
+postForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const text = textInput.value.trim();
+  const username = usernameInput.value.trim();
+  const imageFile = imageInput.files[0];
+
+  if (!text && !imageFile && !selectedLocation) return;
+  if (!username) return alert("Enter a username");
+
+  localStorage.setItem("tinyPathUsername", username);
+
+  let imageUrl = null;
+
+  if (imageFile) {
+    const formData = new FormData();
+    formData.append("file", imageFile);
+    formData.append("upload_preset", UPLOAD_PRESET);
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+    const data = await res.json();
+    imageUrl = data.secure_url;
+  }
+
+  await addDoc(collection(db, "posts"), {
+    text,
+    username,
+    imageUrl,
+    location: selectedLocation,
+    createdAt: serverTimestamp()
+  });
+
+  textInput.value = "";
+  imageInput.value = "";
+  selectedLocation = null;
+  locationPreview.classList.add("hidden");
+});
+
+/* =========================
+   TIME AGO FUNCTION
+========================= */
+
+function timeAgo(timestamp) {
+  if (!timestamp) return "";
+  const seconds = Math.floor((Date.now() - timestamp.toDate()) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+/* =========================
+   REALTIME FEED
+========================= */
+
+const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+
+onSnapshot(q, (snapshot) => {
+  feed.innerHTML = "";
+
+  snapshot.forEach((doc) => {
+    const post = doc.data();
+    const firstLetter = post.username.charAt(0).toUpperCase();
+
+    const postEl = document.createElement("div");
+    postEl.className = "post";
+
+    postEl.innerHTML = `
+      <div class="post-header">
+        <div class="post-user">
+          <div class="avatar">${firstLetter}</div>
+          <div>
+            <div class="username">${post.username}</div>
+            <div class="timestamp">${timeAgo(post.createdAt)}</div>
+          </div>
+        </div>
+      </div>
+
+      ${post.location ? `<div class="location-pill">📍 ${post.location}</div>` : ""}
+      ${post.text ? `<div class="text">${post.text}</div>` : ""}
+      ${post.imageUrl ? `<img src="${post.imageUrl}" class="post-image" />` : ""}
+    `;
+
+    if (post.imageUrl) {
+      postEl.querySelector("img").addEventListener("click", () => {
+        modalImage.src = post.imageUrl;
+        modal.classList.remove("hidden");
+      });
+    }
+
+    feed.appendChild(postEl);
+  });
+});
+
+/* =========================
+   MODAL
+========================= */
+
+closeModal.addEventListener("click", () => {
+  modal.classList.add("hidden");
+});
+
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) {
+    modal.classList.add("hidden");
+  }
+});

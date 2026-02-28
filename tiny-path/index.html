@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Tiny Path</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#c0392b" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Tiny Path" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@1,700&family=Nunito:ital,wght@1,800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <span class="logo-tiny">Tiny</span>
+        <span class="logo-path">Path</span>
+      </div>
+      <button class="settings-btn" id="settingsBtn" aria-label="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Active Filter Banner -->
+  <div id="filterBanner" class="filter-banner hidden">
+    <span>Viewing <strong id="filterName"></strong></span>
+    <button id="clearFilter">✕ All posts</button>
+  </div>
+
+  <div class="container">
+
+    <form id="postForm" class="composer">
+      <input id="usernameInput" placeholder="Your name" autocomplete="nickname" />
+      <textarea id="textInput" placeholder="What's happening?"></textarea>
+      <div id="charCounter" class="char-counter">0 / 300</div>
+
+      <div class="mode-bar">
+        <button class="mode-btn active" data-mode="text" aria-label="Text post">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="mode-btn" data-mode="photo" aria-label="Photo post">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        <button class="mode-btn" data-mode="location" aria-label="Location post">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </button>
+      </div>
+
+      <input type="file" id="imageInput" accept="image/*" hidden />
+      <div id="locationPreview" class="location-preview hidden"></div>
+
+      <button type="submit" class="post-btn">Post</button>
+    </form>
+
+    <div id="feed"></div>
+  </div>
+
+  <!-- Fullscreen Image Modal -->
+  <div id="imageModal" class="image-modal hidden">
+    <span id="closeModal" class="close-modal-btn">&times;</span>
+    <img id="modalImage" />
+  </div>
+
+  <!-- Post Detail Overlay -->
+  <div id="detailOverlay" class="detail-overlay hidden">
+    <div class="detail-header" id="detailHeader">
+      <button class="detail-back" id="detailBack">‹ Back</button>
+      <span class="detail-title">Post</span>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+    <div class="comment-section">
+      <div id="commentList" class="comment-list"></div>
+      <div class="comment-input-row">
+        <input id="commentInput" placeholder="Add a comment…" autocomplete="off" />
+        <button id="commentSubmit">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings / Install Modal -->
+  <div id="settingsModal" class="modal-overlay hidden">
+    <div class="settings-card">
+      <div class="settings-header">
+        <span class="settings-title">📱 Add to Home Screen</span>
+        <button id="closeSettings" class="close-btn">&times;</button>
+      </div>
+      <div class="settings-body">
+        <p class="settings-subtitle">Get the full app experience on your iPhone — no browser, full screen:</p>
+        <ol class="install-steps">
+          <li>Open this page in <strong>Safari</strong> <span class="step-note">(must be Safari, not Chrome)</span></li>
+          <li>Tap the <strong>Share</strong> button at the bottom <span class="share-icon">⬆</span></li>
+          <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+          <li>Tap <strong>Add</strong> in the top-right corner</li>
+        </ol>
+        <p class="settings-tip">Tiny Path will open like a native app — no address bar, no tabs. Just Tiny Path.</p>
+      </div>
+      <div class="settings-version">Tiny Path v2.1</div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
