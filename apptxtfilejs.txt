@@ -1,6 +1,61 @@
-/* ... Keep Firebase/Cloudinary Config & DOM Elements the same ... */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  orderBy,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Helper function to turn URLs into clickable links
+/* =========================
+   FIREBASE CONFIG
+========================= */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDa0W3Fi_WIqhAcro_sk0bV8W08l8ut6kw",
+  authDomain: "tiny-path-b9bb4.firebaseapp.com",
+  projectId: "tiny-path-b9bb4",
+  storageBucket: "tiny-path-b9bb4.firebasestorage.app",
+  messagingSenderId: "28600254620",
+  appId: "1:28600254620:web:b1aa7917e4a7735976ed59"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* =========================
+   CLOUDINARY CONFIG
+========================= */
+
+const CLOUD_NAME = "dqqml8dae";
+const UPLOAD_PRESET = "tiny-path-unsigned";
+
+/* =========================
+   DOM ELEMENTS
+========================= */
+
+const postForm = document.getElementById("postForm");
+const textInput = document.getElementById("textInput");
+const imageInput = document.getElementById("imageInput");
+const usernameInput = document.getElementById("usernameInput");
+const feed = document.getElementById("feed");
+const modeButtons = document.querySelectorAll(".mode-btn");
+const locationPreview = document.getElementById("locationPreview");
+
+const modal = document.getElementById("imageModal");
+const modalImage = document.getElementById("modalImage");
+const closeModal = document.getElementById("closeModal");
+
+/* =========================
+   STATE & HELPERS
+========================= */
+
+let currentMode = "text";
+let selectedLocation = null;
+
+// NEW: Linkify helper
 function linkify(text) {
   if (!text) return "";
   const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
@@ -8,7 +63,62 @@ function linkify(text) {
 }
 
 /* =========================
-   POST SUBMIT (Updated for Multi-Photo)
+   USERNAME RESTORE
+========================= */
+
+if (localStorage.getItem("tinyPathUsername")) {
+  usernameInput.value = localStorage.getItem("tinyPathUsername");
+}
+
+/* =========================
+   MODE SWITCHING
+========================= */
+
+modeButtons.forEach(btn => {
+  btn.addEventListener("click", async () => {
+    modeButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentMode = btn.dataset.mode;
+
+    if (currentMode === "photo") {
+      imageInput.click();
+    }
+    if (currentMode === "location") {
+      fetchLocation();
+    }
+  });
+});
+
+/* =========================
+   LOCATION HANDLING
+========================= */
+
+async function fetchLocation() {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported.");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+      const data = await res.json();
+      const city = data.address.city || data.address.town || data.address.village || "";
+      const state = data.address.state || "";
+      selectedLocation = `${city}, ${state}`;
+      locationPreview.textContent = `📍 ${selectedLocation}`;
+      locationPreview.classList.remove("hidden");
+    } catch (err) {
+      alert("Could not fetch location name.");
+    }
+  }, () => {
+    alert("Location permission denied.");
+  });
+}
+
+/* =========================
+   POST SUBMIT (UPDATED)
 ========================= */
 
 postForm.addEventListener("submit", async (e) => {
@@ -16,17 +126,19 @@ postForm.addEventListener("submit", async (e) => {
 
   const text = textInput.value.trim();
   const username = usernameInput.value.trim();
-  const imageFiles = Array.from(imageInput.files); // Convert FileList to Array
+  const imageFiles = Array.from(imageInput.files);
 
   if (!text && imageFiles.length === 0 && !selectedLocation) return;
   if (!username) return alert("Enter a username");
 
   localStorage.setItem("tinyPathUsername", username);
 
-  let imageUrls = []; // Store multiple URLs
+  let imageUrls = [];
 
-  // Upload each image to Cloudinary
   if (imageFiles.length > 0) {
+    // Show a small console log so you know it's working
+    console.log(`Uploading ${imageFiles.length} images...`);
+    
     const uploadPromises = imageFiles.map(async (file) => {
       const formData = new FormData();
       formData.append("file", file);
@@ -46,12 +158,11 @@ postForm.addEventListener("submit", async (e) => {
   await addDoc(collection(db, "posts"), {
     text,
     username,
-    imageUrls, // Changed from imageUrl to imageUrls array
+    imageUrls, // Storage array for multi-photo
     location: selectedLocation,
     createdAt: serverTimestamp()
   });
 
-  // Reset UI
   textInput.value = "";
   imageInput.value = "";
   selectedLocation = null;
@@ -59,8 +170,23 @@ postForm.addEventListener("submit", async (e) => {
 });
 
 /* =========================
-   REALTIME FEED (Updated for UX)
+   TIME AGO FUNCTION
 ========================= */
+
+function timeAgo(timestamp) {
+  if (!timestamp) return "";
+  const seconds = Math.floor((Date.now() - timestamp.toDate()) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+/* =========================
+   REALTIME FEED (UPDATED)
+========================= */
+
+const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
 
 onSnapshot(q, (snapshot) => {
   feed.innerHTML = "";
@@ -71,10 +197,8 @@ onSnapshot(q, (snapshot) => {
     const postEl = document.createElement("div");
     postEl.className = "post";
 
-    // Handle Linkification for text
     const linkedText = linkify(post.text);
 
-    // Create Image Grid if multiple images exist
     let imageHtml = "";
     if (post.imageUrls && post.imageUrls.length > 0) {
       const gridClass = post.imageUrls.length > 1 ? "image-grid" : "single-image";
@@ -83,6 +207,10 @@ onSnapshot(q, (snapshot) => {
         imageHtml += `<img src="${url}" class="post-image" data-full="${url}" />`;
       });
       imageHtml += `</div>`;
+    } 
+    // Fallback for old posts that used single 'imageUrl'
+    else if (post.imageUrl) {
+      imageHtml = `<div class="single-image"><img src="${post.imageUrl}" class="post-image" data-full="${post.imageUrl}" /></div>`;
     }
 
     postEl.innerHTML = `
@@ -100,15 +228,27 @@ onSnapshot(q, (snapshot) => {
       ${imageHtml}
     `;
 
-    // Only allow clicking images if we are NOT in the feed (handled by CSS below)
-    // But we still need the modal trigger logic for when they ARE clickable
     postEl.querySelectorAll(".post-image").forEach(img => {
-      img.addEventListener("click", (e) => {
-        modalImage.src = e.target.dataset.full;
+      img.addEventListener("click", () => {
+        modalImage.src = img.dataset.full;
         modal.classList.remove("hidden");
       });
     });
 
     feed.appendChild(postEl);
   });
+});
+
+/* =========================
+   MODAL
+========================= */
+
+closeModal.addEventListener("click", () => {
+  modal.classList.add("hidden");
+});
+
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) {
+    modal.classList.add("hidden");
+  }
 });
