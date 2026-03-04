@@ -13,6 +13,11 @@ const UPLOAD_PRESET = "tiny-path-unsigned";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 /* ═══════════════════════════════════════
+   VERSION — bump this before every deploy
+═══════════════════════════════════════ */
+const VERSION = "v3.1 · 2026-03-04";
+
+/* ═══════════════════════════════════════
    SVG ICONS
 ═══════════════════════════════════════ */
 
@@ -257,6 +262,7 @@ function renderPostingAsChip() {
 
 settingsBtn.addEventListener("click", () => {
   document.getElementById("settingsDisplayName").textContent = getDisplayName();
+  document.getElementById("settingsVersion").textContent = VERSION;
   displayNameEdit.classList.add("hidden");
   saveDisplayBtn.classList.add("hidden");
   editDisplayBtn.classList.remove("hidden");
