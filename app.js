@@ -25,14 +25,12 @@ const ICON = {
 
 /* ═══════════════════════════════════════
    AVATAR COLOR
-   Deterministic color per username so the
-   same person always gets the same color.
 ═══════════════════════════════════════ */
 
 const AVATAR_COLORS = [
   "#c0392b", "#e67e22", "#d4a017", "#27ae60",
-  "#16a085", "#2980b9", "#8e44ad", "#c0392b",
-  "#b7410e", "#1a7a4a", "#1c5f8a", "#6c3483"
+  "#16a085", "#2980b9", "#8e44ad", "#b7410e",
+  "#1a7a4a", "#1c5f8a", "#6c3483", "#7f8c8d"
 ];
 
 function avatarColor(username) {
@@ -51,37 +49,68 @@ function avatarHTML(username, size = 40) {
 }
 
 /* ═══════════════════════════════════════
-   DOM REFS
+   SECURITY
+═══════════════════════════════════════ */
+
+function esc(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/* ═══════════════════════════════════════
+   DOM REFS — APP
 ═══════════════════════════════════════ */
 
 const postForm        = document.getElementById("postForm");
 const textInput       = document.getElementById("textInput");
 const imageInput      = document.getElementById("imageInput");
-const usernameInput   = document.getElementById("usernameInput");
 const charCounter     = document.getElementById("charCounter");
 const feed            = document.getElementById("feed");
 const modeButtons     = document.querySelectorAll(".mode-btn");
 const locationPreview = document.getElementById("locationPreview");
+const postingAsRow    = document.getElementById("postingAsRow");
 
-const imageModal      = document.getElementById("imageModal");
-const modalImage      = document.getElementById("modalImage");
-const closeModal      = document.getElementById("closeModal");
+const imageModal  = document.getElementById("imageModal");
+const modalImage  = document.getElementById("modalImage");
+const closeModal  = document.getElementById("closeModal");
 
-const detailOverlay   = document.getElementById("detailOverlay");
-const detailHeader    = document.getElementById("detailHeader");
-const detailBack      = document.getElementById("detailBack");
-const detailBody      = document.getElementById("detailBody");
-const commentList     = document.getElementById("commentList");
-const commentInput    = document.getElementById("commentInput");
-const commentSubmit   = document.getElementById("commentSubmit");
+const detailOverlay = document.getElementById("detailOverlay");
+const detailBack    = document.getElementById("detailBack");
+const detailBody    = document.getElementById("detailBody");
+const commentList   = document.getElementById("commentList");
+const commentInput  = document.getElementById("commentInput");
+const commentSubmit = document.getElementById("commentSubmit");
 
-const settingsBtn     = document.getElementById("settingsBtn");
-const settingsModal   = document.getElementById("settingsModal");
-const closeSettings   = document.getElementById("closeSettings");
+const settingsBtn   = document.getElementById("settingsBtn");
+const settingsModal = document.getElementById("settingsModal");
+const closeSettings = document.getElementById("closeSettings");
 
-const filterBanner    = document.getElementById("filterBanner");
-const filterName      = document.getElementById("filterName");
-const clearFilter     = document.getElementById("clearFilter");
+const filterBanner = document.getElementById("filterBanner");
+const filterName   = document.getElementById("filterName");
+const clearFilter  = document.getElementById("clearFilter");
+
+/* ═══════════════════════════════════════
+   DOM REFS — AUTH
+═══════════════════════════════════════ */
+
+const authOverlay     = document.getElementById("authOverlay");
+const authTitle       = document.getElementById("authTitle");
+const authEmail       = document.getElementById("authEmail");
+const authPassword    = document.getElementById("authPassword");
+const authDisplayName = document.getElementById("authDisplayName");
+const authDisplayRow  = document.getElementById("authDisplayRow");
+const authSubmitBtn   = document.getElementById("authSubmitBtn");
+const authToggleBtn   = document.getElementById("authToggleBtn");
+const authError       = document.getElementById("authError");
+const logoutBtn       = document.getElementById("logoutBtn");
+const editDisplayBtn  = document.getElementById("editDisplayBtn");
+const displayNameEdit = document.getElementById("displayNameEdit");
+const saveDisplayBtn  = document.getElementById("saveDisplayBtn");
+const displayNameErr  = document.getElementById("displayNameErr");
 
 /* ═══════════════════════════════════════
    STATE
@@ -93,73 +122,187 @@ let filterUser          = null;
 let currentDetailPostId = null;
 let unsubscribeComments = null;
 let allPosts            = [];
+let currentUser         = null;
+let feedChannel         = null;
 
 /* ═══════════════════════════════════════
-   INIT
+   AUTH HELPERS
 ═══════════════════════════════════════ */
 
-const savedUsername = localStorage.getItem("tinyPathUsername");
-if (savedUsername) usernameInput.value = savedUsername;
+function getDisplayName() {
+  return currentUser?.user_metadata?.username || currentUser?.email || "You";
+}
+
+function showApp(user) {
+  currentUser = user;
+  authOverlay.classList.add("hidden");
+  renderPostingAsChip();
+}
+
+function showAuth() {
+  currentUser = null;
+  authOverlay.classList.remove("hidden");
+  setAuthMode("login");
+}
 
 /* ═══════════════════════════════════════
-   POSTING-AS CHIP
+   AUTH — LOGIN / SIGNUP UI
 ═══════════════════════════════════════ */
 
-const postingAsRow = document.getElementById("postingAsRow");
+let authMode = "login";
+
+function setAuthMode(mode) {
+  authMode = mode;
+  authError.textContent = "";
+  if (mode === "signup") {
+    authTitle.textContent     = "Create account";
+    authSubmitBtn.textContent = "Sign up";
+    authToggleBtn.textContent = "Already have an account? Log in";
+    authDisplayRow.classList.remove("hidden");
+  } else {
+    authTitle.textContent     = "Welcome back";
+    authSubmitBtn.textContent = "Log in";
+    authToggleBtn.textContent = "New here? Create an account";
+    authDisplayRow.classList.add("hidden");
+  }
+}
+
+authToggleBtn.addEventListener("click", () => {
+  setAuthMode(authMode === "login" ? "signup" : "login");
+});
+
+authSubmitBtn.addEventListener("click", async () => {
+  const email    = authEmail.value.trim();
+  const password = authPassword.value;
+  const display  = authDisplayName.value.trim();
+
+  authError.textContent = "";
+
+  if (!email || !password) {
+    authError.textContent = "Please enter your email and password.";
+    return;
+  }
+  if (authMode === "signup" && !display) {
+    authError.textContent = "Please enter a display name.";
+    return;
+  }
+
+  authSubmitBtn.disabled    = true;
+  authSubmitBtn.textContent = authMode === "login" ? "Logging in…" : "Creating account…";
+
+  try {
+    if (authMode === "signup") {
+      const { error } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { username: display } }
+      });
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    }
+    // onAuthStateChange handles the rest
+  } catch (err) {
+    authError.textContent     = err.message || "Something went wrong.";
+    authSubmitBtn.disabled    = false;
+    authSubmitBtn.textContent = authMode === "login" ? "Log in" : "Sign up";
+  }
+});
+
+[authEmail, authPassword, authDisplayName].forEach(el => {
+  el.addEventListener("keydown", e => { if (e.key === "Enter") authSubmitBtn.click(); });
+});
+
+/* ═══════════════════════════════════════
+   AUTH — SESSION LISTENER
+═══════════════════════════════════════ */
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  if (session?.user) {
+    showApp(session.user);
+    loadPosts();
+    startRealtimeFeed();
+  } else {
+    showAuth();
+  }
+});
+
+/* ═══════════════════════════════════════
+   POSTING-AS CHIP (read-only, auth-driven)
+═══════════════════════════════════════ */
 
 function renderPostingAsChip() {
-  const name = localStorage.getItem("tinyPathUsername") || "";
-  postingAsRow.innerHTML = "";
+  if (!postingAsRow) return;
+  const name = getDisplayName();
+  postingAsRow.innerHTML = `
+    <div class="posting-as-chip">
+      <div class="chip-avatar" style="background:${avatarColor(name)}">${esc(name.charAt(0).toUpperCase())}</div>
+      <span class="chip-name">${esc(name)}</span>
+    </div>
+  `;
+}
 
-  if (name) {
-    const chip = document.createElement("div");
-    chip.className = "posting-as-chip";
-    chip.innerHTML = \`
-      <div class="chip-avatar" style="background:\${avatarColor(name)}">\${esc(name.charAt(0).toUpperCase())}</div>
-      <span class="chip-name">\${esc(name)}</span>
-      <span class="chip-edit">✎</span>
-    \`;
-    chip.addEventListener("click", showNameEditRow);
-    postingAsRow.appendChild(chip);
+/* ═══════════════════════════════════════
+   SETTINGS — DISPLAY NAME + LOGOUT
+═══════════════════════════════════════ */
+
+settingsBtn.addEventListener("click", () => {
+  document.getElementById("settingsDisplayName").textContent = getDisplayName();
+  displayNameEdit.classList.add("hidden");
+  saveDisplayBtn.classList.add("hidden");
+  editDisplayBtn.classList.remove("hidden");
+  if (displayNameErr) displayNameErr.textContent = "";
+  settingsModal.classList.remove("hidden");
+});
+
+closeSettings.addEventListener("click", () => settingsModal.classList.add("hidden"));
+settingsModal.addEventListener("click", e => {
+  if (e.target === settingsModal) settingsModal.classList.add("hidden");
+});
+
+logoutBtn.addEventListener("click", async () => {
+  await supabase.auth.signOut();
+  settingsModal.classList.add("hidden");
+});
+
+editDisplayBtn.addEventListener("click", () => {
+  displayNameEdit.value = getDisplayName();
+  displayNameEdit.classList.remove("hidden");
+  saveDisplayBtn.classList.remove("hidden");
+  editDisplayBtn.classList.add("hidden");
+  if (displayNameErr) displayNameErr.textContent = "";
+  displayNameEdit.focus();
+});
+
+saveDisplayBtn.addEventListener("click", async () => {
+  const val = displayNameEdit.value.trim();
+  if (!val) { if (displayNameErr) displayNameErr.textContent = "Name can't be empty."; return; }
+
+  saveDisplayBtn.disabled    = true;
+  saveDisplayBtn.textContent = "Saving…";
+
+  const { error } = await supabase.auth.updateUser({ data: { username: val } });
+
+  if (error) {
+    if (displayNameErr) displayNameErr.textContent = error.message;
   } else {
-    const prompt = document.createElement("span");
-    prompt.className = "posting-as-prompt";
-    prompt.textContent = "Tap to set your name…";
-    prompt.addEventListener("click", showNameEditRow);
-    postingAsRow.appendChild(prompt);
-  }
-}
-
-function showNameEditRow() {
-  const currentName = localStorage.getItem("tinyPathUsername") || "";
-  postingAsRow.innerHTML = "";
-
-  const row = document.createElement("div");
-  row.className = "name-edit-row";
-  row.innerHTML = \`
-    <input type="text" placeholder="Your name" value="\${esc(currentName)}" autocomplete="nickname" maxlength="30" />
-    <button type="button">Save</button>
-  \`;
-
-  const input   = row.querySelector("input");
-  const saveBtn = row.querySelector("button");
-
-  function saveName() {
-    const val = input.value.trim();
-    if (!val) return;
-    localStorage.setItem("tinyPathUsername", val);
-    usernameInput.value = val;
+    const { data: { user } } = await supabase.auth.getUser();
+    currentUser = user;
     renderPostingAsChip();
+    document.getElementById("settingsDisplayName").textContent = val;
+    displayNameEdit.classList.add("hidden");
+    saveDisplayBtn.classList.add("hidden");
+    editDisplayBtn.classList.remove("hidden");
+    if (displayNameErr) displayNameErr.textContent = "";
   }
 
-  saveBtn.addEventListener("click", saveName);
-  input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); saveName(); } });
+  saveDisplayBtn.disabled    = false;
+  saveDisplayBtn.textContent = "Save";
+});
 
-  postingAsRow.appendChild(row);
-  setTimeout(() => input.focus(), 50);
-}
-
-renderPostingAsChip();
+/* ═══════════════════════════════════════
+   PWA / SERVICE WORKER
+═══════════════════════════════════════ */
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
@@ -170,19 +313,6 @@ const isStandalone = navigator.standalone === true;
 if (isIOS && !isStandalone && !sessionStorage.getItem("installShown")) {
   sessionStorage.setItem("installShown", "1");
   setTimeout(() => settingsModal.classList.remove("hidden"), 1800);
-}
-
-/* ═══════════════════════════════════════
-   SECURITY — HTML ESCAPE
-═══════════════════════════════════════ */
-
-function esc(str) {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 /* ═══════════════════════════════════════
@@ -218,25 +348,18 @@ modeButtons.forEach(btn => {
 ═══════════════════════════════════════ */
 
 async function fetchLocation() {
-  if (!navigator.geolocation) {
-    alert("Geolocation not supported.");
-    return;
-  }
+  if (!navigator.geolocation) { alert("Geolocation not supported."); return; }
   navigator.geolocation.getCurrentPosition(
     async ({ coords: { latitude: lat, longitude: lon } }) => {
       try {
-        const res  = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
-        );
+        const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
         const data = await res.json();
         const city  = data.address.city || data.address.town || data.address.village || "";
         const state = data.address.state || "";
         selectedLocation = `${city}, ${state}`;
         locationPreview.textContent = `📍 ${selectedLocation}`;
         locationPreview.classList.remove("hidden");
-      } catch {
-        alert("Could not fetch location.");
-      }
+      } catch { alert("Could not fetch location."); }
     },
     () => alert("Location permission denied.")
   );
@@ -250,14 +373,11 @@ postForm.addEventListener("submit", async e => {
   e.preventDefault();
 
   const text      = textInput.value.trim();
-  const username  = usernameInput.value.trim();
+  const username  = getDisplayName();
   const imageFile = imageInput.files[0];
 
   if (!text && !imageFile && !selectedLocation) return;
-  if (!username) { alert("Please enter your name."); return; }
-
-  localStorage.setItem("tinyPathUsername", username);
-  renderPostingAsChip();
+  if (!currentUser) { alert("Please log in first."); return; }
 
   const submitBtn = postForm.querySelector(".post-btn");
   submitBtn.disabled    = true;
@@ -269,23 +389,14 @@ postForm.addEventListener("submit", async e => {
       const formData = new FormData();
       formData.append("file", imageFile);
       formData.append("upload_preset", UPLOAD_PRESET);
-      const res  = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-        { method: "POST", body: formData }
-      );
+      const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: "POST", body: formData });
       const data = await res.json();
       image_url = data.secure_url;
     }
 
     const { error } = await supabase.from("posts").insert({
-      text:      text || null,
-      username,
-      image_url,
-      location:  selectedLocation,
-      upvotes:   0,
-      downvotes: 0
+      text: text || null, username, image_url, location: selectedLocation, upvotes: 0, downvotes: 0
     });
-
     if (error) throw error;
 
     textInput.value  = "";
@@ -309,7 +420,6 @@ postForm.addEventListener("submit", async e => {
 
 /* ═══════════════════════════════════════
    TIME HELPERS
-   Supabase returns ISO strings, not Firestore Timestamps.
 ═══════════════════════════════════════ */
 
 function toDate(ts) {
@@ -330,10 +440,7 @@ function timeAgo(ts) {
 function fullTimestamp(ts) {
   const d = toDate(ts);
   if (!d) return "";
-  return d.toLocaleDateString("en-US", {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "numeric", minute: "2-digit"
-  });
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 function dayLabel(ts) {
@@ -354,15 +461,10 @@ function dayLabel(ts) {
 
 function renderFeed() {
   feed.innerHTML = "";
-
-  const posts = filterUser
-    ? allPosts.filter(p => p.username === filterUser)
-    : allPosts;
-
+  const posts = filterUser ? allPosts.filter(p => p.username === filterUser) : allPosts;
   let lastLabel = null;
 
   posts.forEach(post => {
-
     const label = dayLabel(post.created_at);
     if (label !== lastLabel) {
       const header = document.createElement("div");
@@ -373,7 +475,6 @@ function renderFeed() {
     }
 
     const isImageOnly = !!(post.image_url && !post.text);
-
     const postEl = document.createElement("div");
     postEl.className  = `post${isImageOnly ? " post--image-only" : ""}`;
     postEl.dataset.id = post.id;
@@ -407,27 +508,18 @@ function renderFeed() {
     }
 
     postEl.querySelectorAll(".post-tap").forEach(el => {
-      el.addEventListener("click", e => {
-        e.stopPropagation();
-        openDetail(post.id, post);
-      });
+      el.addEventListener("click", e => { e.stopPropagation(); openDetail(post.id, post); });
     });
 
     postEl.querySelector(".upvote-btn").addEventListener("click", async e => {
       e.stopPropagation();
       if (navigator.vibrate) navigator.vibrate(12);
-      await supabase
-        .from("posts")
-        .update({ upvotes: (post.upvotes || 0) + 1 })
-        .eq("id", post.id);
+      await supabase.from("posts").update({ upvotes: (post.upvotes || 0) + 1 }).eq("id", post.id);
     });
     postEl.querySelector(".downvote-btn").addEventListener("click", async e => {
       e.stopPropagation();
       if (navigator.vibrate) navigator.vibrate(12);
-      await supabase
-        .from("posts")
-        .update({ downvotes: (post.downvotes || 0) + 1 })
-        .eq("id", post.id);
+      await supabase.from("posts").update({ downvotes: (post.downvotes || 0) + 1 }).eq("id", post.id);
     });
 
     postEl.querySelector(".filter-link").addEventListener("click", e => {
@@ -457,28 +549,23 @@ clearFilter.addEventListener("click", () => {
 });
 
 /* ═══════════════════════════════════════
-   REALTIME FEED LISTENER
+   REALTIME FEED
 ═══════════════════════════════════════ */
 
 async function loadPosts() {
-  const { data, error } = await supabase
-    .from("posts")
-    .select("*")
-    .order("created_at", { ascending: false });
-
+  const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
   if (error) { console.error("Failed to load posts:", error); return; }
   allPosts = data || [];
   renderFeed();
 }
 
-loadPosts();
-
-supabase
-  .channel("posts-channel")
-  .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
-    loadPosts();
-  })
-  .subscribe();
+function startRealtimeFeed() {
+  if (feedChannel) return;
+  feedChannel = supabase
+    .channel("posts-channel")
+    .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => loadPosts())
+    .subscribe();
+}
 
 /* ═══════════════════════════════════════
    POST DETAIL VIEW
@@ -513,29 +600,17 @@ function openDetail(postId, post) {
 
   detailBody.querySelector(".detail-upvote").addEventListener("click", async () => {
     if (navigator.vibrate) navigator.vibrate(12);
-    await supabase
-      .from("posts")
-      .update({ upvotes: (post.upvotes || 0) + 1 })
-      .eq("id", postId);
+    await supabase.from("posts").update({ upvotes: (post.upvotes || 0) + 1 }).eq("id", postId);
   });
   detailBody.querySelector(".detail-downvote").addEventListener("click", async () => {
     if (navigator.vibrate) navigator.vibrate(12);
-    await supabase
-      .from("posts")
-      .update({ downvotes: (post.downvotes || 0) + 1 })
-      .eq("id", postId);
+    await supabase.from("posts").update({ downvotes: (post.downvotes || 0) + 1 }).eq("id", postId);
   });
 
   const shareBtn = detailBody.querySelector(".share-btn");
   if (navigator.share) {
     shareBtn.addEventListener("click", async () => {
-      try {
-        await navigator.share({
-          title: `${post.username} on Path`,
-          text:  post.text || "Check this out on Path",
-          url:   window.location.href
-        });
-      } catch {}
+      try { await navigator.share({ title: `${post.username} on Path`, text: post.text || "Check this out on Path", url: window.location.href }); } catch {}
     });
   } else {
     shareBtn.style.display = "none";
@@ -553,14 +628,7 @@ function openDetail(postId, post) {
 
   unsubscribeComments = supabase
     .channel(`comments-${postId}`)
-    .on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "comments",
-      filter: `post_id=eq.${postId}`
-    }, () => {
-      loadComments(postId);
-    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` }, () => loadComments(postId))
     .subscribe();
 
   detailOverlay.classList.remove("hidden");
@@ -569,11 +637,7 @@ function openDetail(postId, post) {
 
 async function loadComments(postId) {
   const { data, error } = await supabase
-    .from("comments")
-    .select("*")
-    .eq("post_id", postId)
-    .order("created_at", { ascending: true });
-
+    .from("comments").select("*").eq("post_id", postId).order("created_at", { ascending: true });
   if (error) { console.error("Failed to load comments:", error); return; }
 
   commentList.innerHTML = "";
@@ -601,16 +665,11 @@ function closeDetail(skipAnimation = false) {
     detailOverlay.style.transform  = "";
     detailOverlay.style.transition = "";
     document.body.style.overflow   = "";
-    if (unsubscribeComments) {
-      supabase.removeChannel(unsubscribeComments);
-      unsubscribeComments = null;
-    }
+    if (unsubscribeComments) { supabase.removeChannel(unsubscribeComments); unsubscribeComments = null; }
     currentDetailPostId = null;
     commentInput.value  = "";
   }
-
   if (skipAnimation) { finish(); return; }
-
   detailOverlay.style.transition = "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)";
   detailOverlay.style.transform  = "translateX(100%)";
   setTimeout(finish, 280);
@@ -638,12 +697,10 @@ detailOverlay.addEventListener("touchstart", e => {
 detailOverlay.addEventListener("touchmove", e => {
   const dx = e.touches[0].clientX - swipeStartX;
   const dy = e.touches[0].clientY - swipeStartY;
-
   if (!swipeDecided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
     swipeDecided = true;
     isSwiping    = dx > 0 && Math.abs(dx) > Math.abs(dy);
   }
-
   if (!isSwiping) return;
   e.preventDefault();
   detailOverlay.style.transform = `translateX(${Math.max(0, dx)}px)`;
@@ -651,20 +708,12 @@ detailOverlay.addEventListener("touchmove", e => {
 
 detailOverlay.addEventListener("touchend", e => {
   if (!swipeDecided) return;
-
-  const dx       = e.changedTouches[0].clientX - swipeStartX;
+  const dx = e.changedTouches[0].clientX - swipeStartX;
   const wasSwipe = isSwiping;
-
   swipeDecided = false;
   isSwiping    = false;
-
-  if (!wasSwipe) {
-    detailOverlay.style.transition = "";
-    return;
-  }
-
+  if (!wasSwipe) { detailOverlay.style.transition = ""; return; }
   detailOverlay.style.transition = "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)";
-
   if (dx > 80) {
     detailOverlay.style.transform = "translateX(110%)";
     setTimeout(() => closeDetail(true), 260);
@@ -680,51 +729,24 @@ detailOverlay.addEventListener("touchend", e => {
 
 async function submitComment() {
   const text     = commentInput.value.trim();
-  const username = localStorage.getItem("tinyPathUsername") || usernameInput.value.trim();
-  if (!text)     return;
-  if (!username) { alert("Please set your name first."); return; }
-  if (!currentDetailPostId) return;
-
+  const username = getDisplayName();
+  if (!text || !currentUser || !currentDetailPostId) return;
   commentInput.value = "";
-
-  const { error } = await supabase.from("comments").insert({
-    post_id:  currentDetailPostId,
-    text,
-    username
-  });
-
+  const { error } = await supabase.from("comments").insert({ post_id: currentDetailPostId, text, username });
   if (error) console.error("Comment failed:", error);
 }
 
 commentSubmit.addEventListener("click", submitComment);
-commentInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") submitComment();
-});
+commentInput.addEventListener("keydown", e => { if (e.key === "Enter") submitComment(); });
 
 const viewportMeta = document.querySelector("meta[name=viewport]");
 const baseViewport = viewportMeta.content;
-commentInput.addEventListener("focus", () => {
-  viewportMeta.content = baseViewport + ", maximum-scale=1";
-});
-commentInput.addEventListener("blur", () => {
-  viewportMeta.content = baseViewport;
-});
+commentInput.addEventListener("focus", () => { viewportMeta.content = baseViewport + ", maximum-scale=1"; });
+commentInput.addEventListener("blur",  () => { viewportMeta.content = baseViewport; });
 
 /* ═══════════════════════════════════════
    IMAGE MODAL
 ═══════════════════════════════════════ */
 
 closeModal.addEventListener("click", () => imageModal.classList.add("hidden"));
-imageModal.addEventListener("click", e => {
-  if (e.target === imageModal) imageModal.classList.add("hidden");
-});
-
-/* ═══════════════════════════════════════
-   SETTINGS / INSTALL MODAL
-═══════════════════════════════════════ */
-
-settingsBtn.addEventListener("click",   () => settingsModal.classList.remove("hidden"));
-closeSettings.addEventListener("click", () => settingsModal.classList.add("hidden"));
-settingsModal.addEventListener("click", e => {
-  if (e.target === settingsModal) settingsModal.classList.add("hidden");
-});
+imageModal.addEventListener("click", e => { if (e.target === imageModal) imageModal.classList.add("hidden"); });

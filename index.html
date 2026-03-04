@@ -101,16 +101,53 @@
         <button id="closeSettings" class="close-btn">&times;</button>
       </div>
       <div class="settings-body">
-        <p class="settings-subtitle">Get the full app experience on your iPhone — no browser, full screen:</p>
-        <ol class="install-steps">
-          <li>Open this page in <strong>Safari</strong> <span class="step-note">(must be Safari, not Chrome)</span></li>
-          <li>Tap the <strong>Share</strong> button at the bottom <span class="share-icon">⬆</span></li>
-          <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
-          <li>Tap <strong>Add</strong> in the top-right corner</li>
-        </ol>
-        <p class="settings-tip">Tiny Path will open like a native app — no address bar, no tabs. Just Tiny Path.</p>
+        <!-- Account section -->
+        <div class="settings-section">
+          <div class="settings-section-label">Account</div>
+          <div class="settings-account-row">
+            <span id="settingsDisplayName" class="settings-display-name"></span>
+            <button id="editDisplayBtn" class="settings-edit-btn">Edit name</button>
+          </div>
+          <input id="displayNameEdit" type="text" class="settings-name-input hidden" placeholder="Display name" maxlength="30" />
+          <button id="saveDisplayBtn" class="settings-save-btn hidden">Save</button>
+          <p id="displayNameErr" class="settings-err"></p>
+          <button id="logoutBtn" class="logout-btn">Log out</button>
+        </div>
+
+        <!-- Install section -->
+        <div class="settings-section">
+          <div class="settings-section-label">Add to Home Screen</div>
+          <p class="settings-subtitle">Get the full app experience on your iPhone:</p>
+          <ol class="install-steps">
+            <li>Open in <strong>Safari</strong> <span class="step-note">(not Chrome)</span></li>
+            <li>Tap the <strong>Share</strong> button <span class="share-icon">⬆</span></li>
+            <li>Tap <strong>"Add to Home Screen"</strong></li>
+            <li>Tap <strong>Add</strong></li>
+          </ol>
+        </div>
       </div>
-      <div class="settings-version">Tiny Path v2.1</div>
+      <div class="settings-version">Tiny Path v3.0</div>
+    </div>
+  </div>
+
+  <!-- Auth Overlay -->
+  <div id="authOverlay" class="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-tiny">Tiny</span>
+        <span class="logo-path">Path</span>
+      </div>
+      <h2 id="authTitle" class="auth-title">Welcome back</h2>
+      <div class="auth-fields">
+        <input id="authEmail" type="email" placeholder="Email" autocomplete="email" />
+        <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" />
+        <div id="authDisplayRow" class="hidden">
+          <input id="authDisplayName" type="text" placeholder="Display name (e.g. Jordan)" maxlength="30" autocomplete="nickname" />
+        </div>
+        <p id="authError" class="auth-error"></p>
+        <button id="authSubmitBtn" class="auth-submit-btn">Log in</button>
+        <button id="authToggleBtn" class="auth-toggle-btn">New here? Create an account</button>
+      </div>
     </div>
   </div>
 
