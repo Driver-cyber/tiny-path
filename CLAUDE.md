@@ -49,13 +49,9 @@ The shared emotional design goal is: *a digital journal you share with your clos
 | Database | Firebase Firestore | Realtime sync via `onSnapshot` |
 | Image Hosting | Cloudinary | Unsigned upload preset |
 | Geocoding | OpenStreetMap Nominatim | Free, no key required |
-| Hosting | Netlify | Drag-and-drop deploy, no CLI needed |
+| Hosting | Cloudflare Pages | Connected to GitHub repo |
 
-**Live URLs:**
-- Tiny Path: `https://peaceful-speculoos-c9dc9a.netlify.app`
-- Family Path: `https://remarkable-lokum-9b186c.netlify.app`
-
-**Do not introduce new dependencies, frameworks, or services without explicit discussion and a DECISIONS.md update.**
+**Hosting:** Cloudflare Pages (connected to GitHub repo — push to deploy)
 
 ---
 

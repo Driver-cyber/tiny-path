@@ -12,7 +12,7 @@
 
 **Vibe:** "Warm & Considered." Utility first, beauty close behind. Ship, learn, iterate.
 
-**Current Status:** Both apps live and deployed.
+**Current Status:** Both apps live and deployed on Cloudflare Pages.
 
 | App | URL | Firebase Project |
 |---|---|---|
@@ -43,7 +43,7 @@ Both app subfolders are self-contained Netlify drops. Each has its own Firebase 
 | Database | Firebase Firestore |
 | Image Hosting | Cloudinary (`dqqml8dae` / `tiny-path-unsigned`) |
 | Geocoding | OpenStreetMap Nominatim |
-| Hosting | Netlify (drag-and-drop) |
+| Hosting | Cloudflare Pages |
 
 **Stack is locked.** No new frameworks or services without a logged decision here.
 
@@ -57,7 +57,7 @@ Both app subfolders are self-contained Netlify drops. Each has its own Firebase 
 - Cloudinary for image uploads
 - OpenStreetMap for reverse geocoding
 - Username persistence via `localStorage`
-- Deployed to Netlify
+- Deployed to Cloudflare Pages
 
 ### [2026-02-26] — V2 Planning Complete
 
@@ -138,6 +138,23 @@ Both app subfolders are self-contained Netlify drops. Each has its own Firebase 
 - Safari browser still zoomed despite the font-size fix; added JS that temporarily sets `maximum-scale=1` on the viewport meta on input focus, restoring it on blur. This prevents auto-zoom without permanently disabling user pinch-zoom.
 
 **Other small improvements:** Various minor UI/UX tweaks applied this session.
+
+---
+
+### [2026-03-04] — Firebase → Supabase Migration & Cloudflare Hosting
+
+**Database:**
+- *Decision:* Migrated from Firebase Firestore to Supabase (PostgreSQL)
+- *Rationale:* Simpler SQL data model, better dashboard, open source
+- *Two separate Supabase projects* — one per app, matching the previous Firebase setup
+- Tiny Path Supabase project: `czaztxqhkqwoviazqaeu`
+- Schema: `posts` table + `comments` table with `post_id` foreign key
+- Realtime via Supabase `postgres_changes` channel subscriptions
+- All existing Firebase data wiped; fresh start on Supabase
+
+**Hosting:**
+- *Decision:* Moved from Netlify to Cloudflare Pages
+- *Deployment:* Connected to GitHub repo — push to deploy
 
 ---
 
