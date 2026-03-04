@@ -15,7 +15,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 /* ═══════════════════════════════════════
    VERSION — bump this before every deploy
 ═══════════════════════════════════════ */
-const VERSION = "v3.2 · 2026-03-04";
+const VERSION = "v3.3 · 2026-03-04";
 
 /* ═══════════════════════════════════════
    SVG ICONS
@@ -167,6 +167,10 @@ const closeSettings = document.getElementById("closeSettings");
 const filterBanner = document.getElementById("filterBanner");
 const filterName   = document.getElementById("filterName");
 const clearFilter  = document.getElementById("clearFilter");
+
+const profileOverlay = document.getElementById("profileOverlay");
+const profileBody    = document.getElementById("profileBody");
+const profileBack    = document.getElementById("profileBack");
 
 /* ═══════════════════════════════════════
    DOM REFS — AUTH
@@ -613,7 +617,13 @@ function renderFeed() {
 
     postEl.querySelector(".filter-link").addEventListener("click", e => {
       e.stopPropagation();
-      setFilter(post.username);
+      openProfile(post.username);
+    });
+
+    // Also make avatar clickable
+    postEl.querySelector(".avatar").addEventListener("click", e => {
+      e.stopPropagation();
+      openProfile(post.username);
     });
 
     feed.appendChild(postEl);
@@ -621,7 +631,7 @@ function renderFeed() {
 }
 
 /* ═══════════════════════════════════════
-   USER FILTER
+   USER FILTER (kept for filter banner)
 ═══════════════════════════════════════ */
 
 function setFilter(user) {
@@ -636,6 +646,165 @@ clearFilter.addEventListener("click", () => {
   filterBanner.classList.add("hidden");
   renderFeed();
 });
+
+/* ═══════════════════════════════════════
+   PROFILE OVERLAY
+═══════════════════════════════════════ */
+
+async function openProfile(username) {
+  profileOverlay.style.transform  = "";
+  profileOverlay.style.transition = "";
+  profileOverlay.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+
+  // Load their posts
+  const userPosts = allPosts.filter(p => p.username === username);
+  const postCount = userPosts.length;
+
+  // Get member since from earliest post (best we can do without user table)
+  const earliest  = userPosts.length
+    ? userPosts.reduce((a, b) => new Date(a.created_at) < new Date(b.created_at) ? a : b)
+    : null;
+  const memberSince = earliest
+    ? new Date(earliest.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    : "—";
+
+  const isOwnProfile = username === getDisplayName();
+  const bio = isOwnProfile
+    ? (currentUser?.user_metadata?.bio || "")
+    : ""; // bio only available for own profile via auth metadata
+
+  const color  = avatarColor(username);
+  const letter = (username || "?").charAt(0).toUpperCase();
+
+  profileBody.innerHTML = `
+    <div class="profile-hero">
+      <div class="profile-avatar" style="background:${color}">${esc(letter)}</div>
+      <div class="profile-name">${esc(username)}</div>
+      <div class="profile-meta">
+        <span class="profile-stat"><strong>${postCount}</strong> posts</span>
+        <span class="profile-meta-sep">·</span>
+        <span class="profile-stat">Since ${esc(memberSince)}</span>
+      </div>
+      <div class="profile-bio" id="profileBioText">${esc(bio) || (isOwnProfile ? '<span class="profile-bio-empty">Add a bio…</span>' : "")}</div>
+      ${isOwnProfile ? `
+        <div class="profile-edit-row" id="profileEditRow">
+          <textarea id="profileBioInput" class="profile-bio-input hidden" placeholder="Write a short bio…" maxlength="160">${esc(bio)}</textarea>
+          <button id="profileBioEditBtn" class="profile-edit-btn">Edit bio</button>
+          <button id="profileBioSaveBtn" class="profile-save-btn hidden">Save</button>
+        </div>` : ""}
+    </div>
+    <div class="profile-posts-label">Posts</div>
+    <div id="profilePostsFeed" class="profile-posts-feed"></div>
+  `;
+
+  // Render their posts as mini cards
+  const profileFeed = profileBody.querySelector("#profilePostsFeed");
+  if (userPosts.length === 0) {
+    profileFeed.innerHTML = '<p class="no-comments" style="padding:20px">No posts yet.</p>';
+  } else {
+    userPosts.forEach(post => {
+      const images   = parseImages(post.image_url);
+      const firstImg = images[0] || null;
+      const card = document.createElement("div");
+      card.className = "profile-post-card";
+      card.innerHTML = `
+        ${firstImg ? `<img src="${esc(firstImg)}" class="profile-post-thumb" loading="lazy" />` : ""}
+        <div class="profile-post-content">
+          ${post.text ? `<div class="profile-post-text">${linkify(post.text)}</div>` : ""}
+          <div class="profile-post-time">${timeAgo(post.created_at)}</div>
+        </div>
+      `;
+      card.addEventListener("click", () => openDetail(post.id, post));
+      profileFeed.appendChild(card);
+    });
+  }
+
+  // Bio edit (own profile only)
+  if (isOwnProfile) {
+    const bioEditBtn = profileBody.querySelector("#profileBioEditBtn");
+    const bioSaveBtn = profileBody.querySelector("#profileBioSaveBtn");
+    const bioInput   = profileBody.querySelector("#profileBioInput");
+    const bioText    = profileBody.querySelector("#profileBioText");
+
+    bioEditBtn?.addEventListener("click", () => {
+      bioInput.classList.remove("hidden");
+      bioSaveBtn.classList.remove("hidden");
+      bioEditBtn.classList.add("hidden");
+      bioInput.focus();
+    });
+
+    bioSaveBtn?.addEventListener("click", async () => {
+      const val = bioInput.value.trim();
+      bioSaveBtn.disabled    = true;
+      bioSaveBtn.textContent = "Saving…";
+      const { error } = await supabase.auth.updateUser({ data: { bio: val } });
+      if (!error) {
+        const { data: { user } } = await supabase.auth.getUser();
+        currentUser = user;
+        bioText.textContent = val || "";
+        bioInput.classList.add("hidden");
+        bioSaveBtn.classList.add("hidden");
+        bioEditBtn.classList.remove("hidden");
+      }
+      bioSaveBtn.disabled    = false;
+      bioSaveBtn.textContent = "Save";
+    });
+  }
+}
+
+function closeProfile(skipAnimation = false) {
+  function finish() {
+    profileOverlay.classList.add("hidden");
+    profileOverlay.style.transform  = "";
+    profileOverlay.style.transition = "";
+    document.body.style.overflow    = "";
+  }
+  if (skipAnimation) { finish(); return; }
+  profileOverlay.style.transition = "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)";
+  profileOverlay.style.transform  = "translateX(100%)";
+  setTimeout(finish, 280);
+}
+
+profileBack.addEventListener("click", () => closeProfile());
+
+// Swipe right to close profile (same as detail)
+let profileSwipeStartX = 0, profileSwipeStartY = 0, profileSwiping = false, profileSwipeDecided = false;
+
+profileOverlay.addEventListener("touchstart", e => {
+  profileSwipeStartX = e.touches[0].clientX;
+  profileSwipeStartY = e.touches[0].clientY;
+  profileSwiping = false; profileSwipeDecided = false;
+  profileOverlay.style.transition = "none";
+}, { passive: true });
+
+profileOverlay.addEventListener("touchmove", e => {
+  const dx = e.touches[0].clientX - profileSwipeStartX;
+  const dy = e.touches[0].clientY - profileSwipeStartY;
+  if (!profileSwipeDecided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    profileSwipeDecided = true;
+    profileSwiping = dx > 0 && Math.abs(dx) > Math.abs(dy);
+  }
+  if (!profileSwiping) return;
+  e.preventDefault();
+  profileOverlay.style.transform = `translateX(${Math.max(0, dx)}px)`;
+}, { passive: false });
+
+profileOverlay.addEventListener("touchend", e => {
+  if (!profileSwipeDecided) return;
+  const dx = e.changedTouches[0].clientX - profileSwipeStartX;
+  const wasSwipe = profileSwiping;
+  profileSwiping = false; profileSwipeDecided = false;
+  if (!wasSwipe) { profileOverlay.style.transition = ""; return; }
+  profileOverlay.style.transition = "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)";
+  if (dx > 80) {
+    profileOverlay.style.transform = "translateX(110%)";
+    setTimeout(() => closeProfile(true), 260);
+  } else {
+    profileOverlay.style.transform = "";
+    setTimeout(() => { profileOverlay.style.transition = ""; }, 300);
+  }
+}, { passive: true });
 
 /* ═══════════════════════════════════════
    REALTIME FEED
@@ -671,7 +840,7 @@ function openDetail(postId, post) {
         <div class="post-user">
           ${avatarHTML(post.username)}
           <div>
-            <div class="username">${esc(post.username)}</div>
+            <div class="username profile-link" style="cursor:pointer">${esc(post.username)}</div>
             <div class="timestamp">${fullTimestamp(post.created_at)}</div>
           </div>
         </div>
@@ -703,6 +872,17 @@ function openDetail(postId, post) {
     });
   } else {
     shareBtn.style.display = "none";
+  }
+
+  // Username/avatar in detail → profile
+  const profileLinkEl = detailBody.querySelector(".profile-link");
+  if (profileLinkEl) {
+    profileLinkEl.addEventListener("click", () => openProfile(post.username));
+  }
+  const detailAvatarEl = detailBody.querySelector(".avatar");
+  if (detailAvatarEl) {
+    detailAvatarEl.style.cursor = "pointer";
+    detailAvatarEl.addEventListener("click", () => openProfile(post.username));
   }
 
   // Wire up all tappable images in detail view → fullscreen modal
