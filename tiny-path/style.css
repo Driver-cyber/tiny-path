@@ -1218,3 +1218,106 @@ body {
   border-color: #c0392b;
   color: #c0392b;
 }
+
+/* =========================
+   FEED IMAGE WRAP + BADGE
+========================= */
+
+.feed-image-wrap {
+  position: relative;
+  display: block;
+  cursor: pointer;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.feed-image-wrap .post-image {
+  margin-top: 0;
+  border-radius: 0;
+  width: 100%;
+}
+
+.more-images-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.55);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+/* =========================
+   DETAIL VIEW — MULTI IMAGE
+========================= */
+
+.detail-thumbs-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+
+.detail-thumb {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.detail-thumb:hover { opacity: 0.85; }
+
+/* =========================
+   COMPOSER IMAGE PREVIEW
+========================= */
+
+.image-preview-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.preview-thumb-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.preview-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+}
+
+.preview-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #333;
+  color: white;
+  border: none;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+}

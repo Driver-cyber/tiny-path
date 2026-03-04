@@ -15,7 +15,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 /* ═══════════════════════════════════════
    VERSION — bump this before every deploy
 ═══════════════════════════════════════ */
-const VERSION = "v3.1 · 2026-03-04";
+const VERSION = "v3.2 · 2026-03-04";
 
 /* ═══════════════════════════════════════
    SVG ICONS
@@ -74,6 +74,67 @@ function linkify(str) {
     '<a class="post-link" href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
   );
 }
+
+/* ═══════════════════════════════════════
+   IMAGE URL HELPERS
+   image_url is stored as either:
+   - a plain string (legacy single image)
+   - a JSON array string (multi-image)
+═══════════════════════════════════════ */
+
+function parseImages(image_url) {
+  if (!image_url) return [];
+  try {
+    const parsed = JSON.parse(image_url);
+    return Array.isArray(parsed) ? parsed : [image_url];
+  } catch {
+    return [image_url];
+  }
+}
+
+function buildDetailImages(post) {
+  const images = parseImages(post.image_url);
+  if (images.length === 0) return "";
+  if (images.length === 1) {
+    return `<img src="${esc(images[0])}" class="detail-image" />`;
+  }
+  // iMessage style: first image big, rest as small row
+  const thumbs = images.slice(1).map(url =>
+    `<img src="${esc(url)}" class="detail-thumb" loading="lazy" />`
+  ).join("");
+  return `
+    <img src="${esc(images[0])}" class="detail-image" />
+    <div class="detail-thumbs-row">${thumbs}</div>
+  `;
+}
+
+/* ═══════════════════════════════════════
+   COMPOSER IMAGE PREVIEW
+═══════════════════════════════════════ */
+
+const imagePreviewRow = document.getElementById("imagePreviewRow");
+
+function clearImagePreview() {
+  if (imagePreviewRow) imagePreviewRow.innerHTML = "";
+}
+
+imageInput.addEventListener("change", () => {
+  if (!imagePreviewRow) return;
+  imagePreviewRow.innerHTML = "";
+  const files = Array.from(imageInput.files);
+  files.forEach(file => {
+    const url = URL.createObjectURL(file);
+    const wrap = document.createElement("div");
+    wrap.className = "preview-thumb-wrap";
+    wrap.innerHTML = `<img src="${url}" class="preview-thumb" /><button type="button" class="preview-remove">✕</button>`;
+    wrap.querySelector(".preview-remove").addEventListener("click", () => {
+      // Can't surgically remove one file from FileList, so clear all and prompt re-select
+      imageInput.value = "";
+      imagePreviewRow.innerHTML = "";
+    });
+    imagePreviewRow.appendChild(wrap);
+  });
+});
 
 /* ═══════════════════════════════════════
    DOM REFS — APP
@@ -387,26 +448,33 @@ async function fetchLocation() {
 postForm.addEventListener("submit", async e => {
   e.preventDefault();
 
-  const text      = textInput.value.trim();
-  const username  = getDisplayName();
-  const imageFile = imageInput.files[0];
+  const text       = textInput.value.trim();
+  const username   = getDisplayName();
+  const imageFiles = Array.from(imageInput.files);
 
-  if (!text && !imageFile && !selectedLocation) return;
+  if (!text && imageFiles.length === 0 && !selectedLocation) return;
   if (!currentUser) { alert("Please log in first."); return; }
 
   const submitBtn = postForm.querySelector(".post-btn");
   submitBtn.disabled    = true;
-  submitBtn.textContent = "Posting…";
+  submitBtn.textContent = imageFiles.length > 1 ? `Uploading 0/${imageFiles.length}…` : "Posting…";
 
   try {
     let image_url = null;
-    if (imageFile) {
-      const formData = new FormData();
-      formData.append("file", imageFile);
-      formData.append("upload_preset", UPLOAD_PRESET);
-      const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: "POST", body: formData });
-      const data = await res.json();
-      image_url = data.secure_url;
+
+    if (imageFiles.length > 0) {
+      // Upload all images in parallel
+      const uploads = imageFiles.map((file, i) =>
+        fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+          method: "POST",
+          body: (() => { const fd = new FormData(); fd.append("file", file); fd.append("upload_preset", UPLOAD_PRESET); return fd; })()
+        })
+        .then(r => r.json())
+        .then(d => { submitBtn.textContent = `Uploading ${i+1}/${imageFiles.length}…`; return d.secure_url; })
+      );
+      const urls = await Promise.all(uploads);
+      // Single image → plain string (backwards compat), multiple → JSON array
+      image_url = urls.length === 1 ? urls[0] : JSON.stringify(urls);
     }
 
     const { error } = await supabase.from("posts").insert({
@@ -416,6 +484,7 @@ postForm.addEventListener("submit", async e => {
 
     textInput.value  = "";
     imageInput.value = "";
+    clearImagePreview();
     selectedLocation = null;
     charCounter.textContent = `0 / ${CHAR_LIMIT}`;
     charCounter.classList.remove("char-near", "char-over");
@@ -489,7 +558,11 @@ function renderFeed() {
       lastLabel = label;
     }
 
+    const images      = parseImages(post.image_url);
+    const firstImg    = images[0] || null;
+    const extraCount  = images.length - 1;
     const isImageOnly = !!(post.image_url && !post.text);
+
     const postEl = document.createElement("div");
     postEl.className  = `post${isImageOnly ? " post--image-only" : ""}`;
     postEl.dataset.id = post.id;
@@ -504,23 +577,19 @@ function renderFeed() {
           </div>
         </div>
       </div>
-      ${post.location  ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ""}
-      ${post.text      ? `<div class="text post-tap">${linkify(post.text)}</div>` : ""}
-      ${post.image_url ? `<img src="${esc(post.image_url)}" class="post-image" loading="lazy" />` : ""}
+      ${post.location ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ""}
+      ${post.text     ? `<div class="text post-tap">${linkify(post.text)}</div>` : ""}
+      ${firstImg ? `
+        <div class="feed-image-wrap post-tap">
+          <img src="${esc(firstImg)}" class="post-image" loading="lazy" />
+          ${extraCount > 0 ? `<div class="more-images-badge">+${extraCount} more</div>` : ""}
+        </div>` : ""}
       <div class="post-actions">
         <button class="vote-btn upvote-btn">${ICON.thumbsUp} <span class="vote-count">${post.upvotes || 0}</span></button>
         <button class="vote-btn downvote-btn">${ICON.thumbsDown} <span class="vote-count">${post.downvotes || 0}</span></button>
         <span class="comment-hint post-tap">${ICON.comment} Comments</span>
       </div>
     `;
-
-    // Feed image tap → open detail (not fullscreen modal)
-    if (post.image_url) {
-      postEl.querySelector(".post-image").addEventListener("click", e => {
-        e.stopPropagation();
-        openDetail(post.id, post);
-      });
-    }
 
     postEl.querySelectorAll(".post-tap").forEach(el => {
       el.addEventListener("click", e => {
@@ -609,7 +678,7 @@ function openDetail(postId, post) {
       </div>
       ${post.location  ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ""}
       ${post.text      ? `<div class="text">${linkify(post.text)}</div>` : ""}
-      ${post.image_url ? `<img src="${esc(post.image_url)}" class="detail-image" />` : ""}
+      ${buildDetailImages(post)}
       <div class="detail-votes">
         <button class="vote-btn detail-upvote">${ICON.thumbsUp} <span>${post.upvotes || 0}</span></button>
         <button class="vote-btn detail-downvote">${ICON.thumbsDown} <span>${post.downvotes || 0}</span></button>
@@ -636,12 +705,13 @@ function openDetail(postId, post) {
     shareBtn.style.display = "none";
   }
 
-  if (post.image_url) {
-    detailBody.querySelector(".detail-image").addEventListener("click", () => {
-      modalImage.src = post.image_url;
+  // Wire up all tappable images in detail view → fullscreen modal
+  detailBody.querySelectorAll(".detail-image, .detail-thumb").forEach(img => {
+    img.addEventListener("click", () => {
+      modalImage.src = img.src;
       imageModal.classList.remove("hidden");
     });
-  }
+  });
 
   commentList.innerHTML = '<p class="no-comments">Loading…</p>';
   loadComments(postId);
