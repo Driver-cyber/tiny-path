@@ -24,6 +24,33 @@ const ICON = {
 };
 
 /* ═══════════════════════════════════════
+   AVATAR COLOR
+   Deterministic color per username so the
+   same person always gets the same color.
+═══════════════════════════════════════ */
+
+const AVATAR_COLORS = [
+  "#c0392b", "#e67e22", "#d4a017", "#27ae60",
+  "#16a085", "#2980b9", "#8e44ad", "#c0392b",
+  "#b7410e", "#1a7a4a", "#1c5f8a", "#6c3483"
+];
+
+function avatarColor(username) {
+  if (!username) return AVATAR_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function avatarHTML(username, size = 40) {
+  const letter = (username || "?").charAt(0).toUpperCase();
+  const color  = avatarColor(username);
+  return `<div class="avatar" style="width:${size}px;height:${size}px;background:${color}">${esc(letter)}</div>`;
+}
+
+/* ═══════════════════════════════════════
    DOM REFS
 ═══════════════════════════════════════ */
 
@@ -73,6 +100,66 @@ let allPosts            = [];
 
 const savedUsername = localStorage.getItem("tinyPathUsername");
 if (savedUsername) usernameInput.value = savedUsername;
+
+/* ═══════════════════════════════════════
+   POSTING-AS CHIP
+═══════════════════════════════════════ */
+
+const postingAsRow = document.getElementById("postingAsRow");
+
+function renderPostingAsChip() {
+  const name = localStorage.getItem("tinyPathUsername") || "";
+  postingAsRow.innerHTML = "";
+
+  if (name) {
+    const chip = document.createElement("div");
+    chip.className = "posting-as-chip";
+    chip.innerHTML = \`
+      <div class="chip-avatar" style="background:\${avatarColor(name)}">\${esc(name.charAt(0).toUpperCase())}</div>
+      <span class="chip-name">\${esc(name)}</span>
+      <span class="chip-edit">✎</span>
+    \`;
+    chip.addEventListener("click", showNameEditRow);
+    postingAsRow.appendChild(chip);
+  } else {
+    const prompt = document.createElement("span");
+    prompt.className = "posting-as-prompt";
+    prompt.textContent = "Tap to set your name…";
+    prompt.addEventListener("click", showNameEditRow);
+    postingAsRow.appendChild(prompt);
+  }
+}
+
+function showNameEditRow() {
+  const currentName = localStorage.getItem("tinyPathUsername") || "";
+  postingAsRow.innerHTML = "";
+
+  const row = document.createElement("div");
+  row.className = "name-edit-row";
+  row.innerHTML = \`
+    <input type="text" placeholder="Your name" value="\${esc(currentName)}" autocomplete="nickname" maxlength="30" />
+    <button type="button">Save</button>
+  \`;
+
+  const input   = row.querySelector("input");
+  const saveBtn = row.querySelector("button");
+
+  function saveName() {
+    const val = input.value.trim();
+    if (!val) return;
+    localStorage.setItem("tinyPathUsername", val);
+    usernameInput.value = val;
+    renderPostingAsChip();
+  }
+
+  saveBtn.addEventListener("click", saveName);
+  input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); saveName(); } });
+
+  postingAsRow.appendChild(row);
+  setTimeout(() => input.focus(), 50);
+}
+
+renderPostingAsChip();
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
@@ -170,6 +257,7 @@ postForm.addEventListener("submit", async e => {
   if (!username) { alert("Please enter your name."); return; }
 
   localStorage.setItem("tinyPathUsername", username);
+  renderPostingAsChip();
 
   const submitBtn = postForm.querySelector(".post-btn");
   submitBtn.disabled    = true;
@@ -285,7 +373,6 @@ function renderFeed() {
     }
 
     const isImageOnly = !!(post.image_url && !post.text);
-    const firstLetter = (post.username || "?").charAt(0).toUpperCase();
 
     const postEl = document.createElement("div");
     postEl.className  = `post${isImageOnly ? " post--image-only" : ""}`;
@@ -294,7 +381,7 @@ function renderFeed() {
     postEl.innerHTML = `
       <div class="post-header">
         <div class="post-user">
-          <div class="avatar">${esc(firstLetter)}</div>
+          ${avatarHTML(post.username)}
           <div>
             <div class="username filter-link" data-user="${esc(post.username)}">${esc(post.username)}</div>
             <div class="timestamp">${timeAgo(post.created_at)}</div>
@@ -402,13 +489,11 @@ function openDetail(postId, post) {
   detailOverlay.style.transform  = "";
   detailOverlay.style.transition = "";
 
-  const firstLetter = (post.username || "?").charAt(0).toUpperCase();
-
   detailBody.innerHTML = `
     <div class="detail-post">
       <div class="post-header">
         <div class="post-user">
-          <div class="avatar">${esc(firstLetter)}</div>
+          ${avatarHTML(post.username)}
           <div>
             <div class="username">${esc(post.username)}</div>
             <div class="timestamp">${fullTimestamp(post.created_at)}</div>
@@ -499,7 +584,12 @@ async function loadComments(postId) {
   data.forEach(c => {
     const el = document.createElement("div");
     el.className = "comment";
-    el.innerHTML = `<span class="comment-user">${esc(c.username)}</span><span class="comment-text">${esc(c.text)}</span>`;
+    el.innerHTML = `
+      <div class="comment-avatar" style="background:${avatarColor(c.username)}">${esc((c.username || "?").charAt(0).toUpperCase())}</div>
+      <div class="comment-content">
+        <span class="comment-user">${esc(c.username)}</span><span class="comment-text">${esc(c.text)}</span>
+      </div>
+    `;
     commentList.appendChild(el);
   });
   commentList.scrollTop = commentList.scrollHeight;
