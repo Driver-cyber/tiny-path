@@ -413,14 +413,13 @@ body {
 
 .post-image {
   width: 100%;
+  max-height: 260px;
+  object-fit: cover;
   border-radius: 14px;
   margin-top: 8px;
-  cursor: pointer;
   display: block;
-  transition: opacity 0.2s;
+  cursor: pointer;
 }
-
-.post-image:hover { opacity: 0.95; }
 
 /* =========================
    LOCATION PILL
@@ -576,6 +575,7 @@ body {
   margin-top: 8px;
   cursor: pointer;
   display: block;
+  pointer-events: auto;
 }
 
 .detail-votes {
@@ -933,50 +933,68 @@ body {
   display: none !important;
 }
 
-/* 1. Thumbnails/Grid for multi-photo */
+/* =========================
+   TOUCH ZOOM CONTROL
+   Disabled globally, re-enabled only in
+   image modal and detail overlay.
+========================= */
+
+body {
+  touch-action: pan-y; /* vertical scroll only — no pinch zoom */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Re-enable zoom inside fullscreen image modal */
+#imageModal {
+  touch-action: auto;
+}
+
+#modalImage {
+  touch-action: auto;
+  pointer-events: auto;
+  max-width: 95vw;
+}
+
+/* Re-enable zoom inside detail overlay */
+.detail-overlay {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* =========================
+   LINK STYLING
+========================= */
+
+.post-link {
+  color: #2980b9;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(41, 128, 185, 0.35);
+  word-break: break-all;
+}
+
+.post-link:hover {
+  color: #1a6a9a;
+  border-bottom-color: #1a6a9a;
+}
+
+/* =========================
+   IMAGE GRID (multi-photo)
+========================= */
+
 .image-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 4px;
   margin-top: 10px;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .image-grid img {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  border-radius: 8px;
-}
-
-/* 2. Smaller images in feed & disabling interaction */
-.post-image {
-  max-height: 350px; /* Prevents giant vertical images */
-  width: auto;
-  max-width: 100%;
-  border-radius: 12px;
-  pointer-events: none; /* Prevents clicks/pops in the feed */
-}
-
-/* 3. Detail View / Modal styles (Re-enable interaction) */
-#imageModal {
-  touch-action: auto; /* Allows zoom here */
-  z-index: 9999;
-}
-
-#modalImage {
-  pointer-events: auto; /* Allows clicking/saving in modal */
-  max-width: 95vw;
-}
-
-/* 4. Disable touch-to-zoom on main feed */
-body {
-  touch-action: pan-y; /* Allows vertical scrolling but prevents pinch-zoom */
-}
-
-/* 5. Link styling */
-.post-link {
-  color: #2e86de;
-  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* =========================

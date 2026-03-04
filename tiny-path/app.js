@@ -61,6 +61,15 @@ function esc(str) {
     .replace(/"/g, "&quot;");
 }
 
+function linkify(str) {
+  if (!str) return "";
+  const escaped = esc(str);
+  return escaped.replace(
+    /(https?:\/\/[^\s&]+)/g,
+    '<a class="post-link" href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+}
+
 /* ═══════════════════════════════════════
    DOM REFS — APP
 ═══════════════════════════════════════ */
@@ -490,7 +499,7 @@ function renderFeed() {
         </div>
       </div>
       ${post.location  ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ""}
-      ${post.text      ? `<div class="text post-tap">${esc(post.text)}</div>` : ""}
+      ${post.text      ? `<div class="text post-tap">${linkify(post.text)}</div>` : ""}
       ${post.image_url ? `<img src="${esc(post.image_url)}" class="post-image" loading="lazy" />` : ""}
       <div class="post-actions">
         <button class="vote-btn upvote-btn">${ICON.thumbsUp} <span class="vote-count">${post.upvotes || 0}</span></button>
@@ -499,16 +508,21 @@ function renderFeed() {
       </div>
     `;
 
+    // Feed image tap → open detail (not fullscreen modal)
     if (post.image_url) {
       postEl.querySelector(".post-image").addEventListener("click", e => {
         e.stopPropagation();
-        modalImage.src = post.image_url;
-        imageModal.classList.remove("hidden");
+        openDetail(post.id, post);
       });
     }
 
     postEl.querySelectorAll(".post-tap").forEach(el => {
-      el.addEventListener("click", e => { e.stopPropagation(); openDetail(post.id, post); });
+      el.addEventListener("click", e => {
+        // Don't intercept clicks on actual links
+        if (e.target.closest("a")) return;
+        e.stopPropagation();
+        openDetail(post.id, post);
+      });
     });
 
     postEl.querySelector(".upvote-btn").addEventListener("click", async e => {
@@ -588,7 +602,7 @@ function openDetail(postId, post) {
         </div>
       </div>
       ${post.location  ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ""}
-      ${post.text      ? `<div class="text">${esc(post.text)}</div>` : ""}
+      ${post.text      ? `<div class="text">${linkify(post.text)}</div>` : ""}
       ${post.image_url ? `<img src="${esc(post.image_url)}" class="detail-image" />` : ""}
       <div class="detail-votes">
         <button class="vote-btn detail-upvote">${ICON.thumbsUp} <span>${post.upvotes || 0}</span></button>
