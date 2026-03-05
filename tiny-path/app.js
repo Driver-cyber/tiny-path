@@ -15,7 +15,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 /* ═══════════════════════════════════════
    VERSION — bump this before every deploy
 ═══════════════════════════════════════ */
-const VERSION = "v3.3 · 2026-03-04";
+const VERSION = "v3.4 · 2026-03-04";
 
 /* ═══════════════════════════════════════
    SVG ICONS
@@ -196,6 +196,10 @@ function showApp(user) {
 function showAuth() {
   currentUser = null;
   authOverlay.classList.remove("hidden");
+  authSubmitBtn.disabled = false;
+  authEmail.value = "";
+  authPassword.value = "";
+  authDisplayName.value = "";
   setAuthMode("login");
 }
 
@@ -300,7 +304,7 @@ function renderPostingAsChip() {
    SETTINGS — DISPLAY NAME + LOGOUT
 ═══════════════════════════════════════ */
 
-settingsBtn.addEventListener("click", () => {
+function openSettings() {
   document.getElementById("settingsDisplayName").textContent = getDisplayName();
   document.getElementById("settingsVersion").textContent = VERSION;
   displayNameEdit.classList.add("hidden");
@@ -308,16 +312,23 @@ settingsBtn.addEventListener("click", () => {
   editDisplayBtn.classList.remove("hidden");
   if (displayNameErr) displayNameErr.textContent = "";
   settingsModal.classList.remove("hidden");
-});
+  document.body.style.overflow = "hidden";
+}
 
-closeSettings.addEventListener("click", () => settingsModal.classList.add("hidden"));
+function closeSettingsModal() {
+  settingsModal.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+settingsBtn.addEventListener("click", openSettings);
+closeSettings.addEventListener("click", closeSettingsModal);
 settingsModal.addEventListener("click", e => {
-  if (e.target === settingsModal) settingsModal.classList.add("hidden");
+  if (e.target === settingsModal) closeSettingsModal();
 });
 
 logoutBtn.addEventListener("click", async () => {
   await supabase.auth.signOut();
-  settingsModal.classList.add("hidden");
+  closeSettingsModal();
 });
 
 editDisplayBtn.addEventListener("click", () => {
@@ -393,7 +404,7 @@ modeButtons.forEach(btn => {
     modeButtons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     currentMode = btn.dataset.mode;
-    if (currentMode === "photo")    imageInput.click();
+    if (currentMode === "photo") { const lbl = document.getElementById("imageInputLabel"); if (lbl) lbl.click(); else imageInput.click(); }
     if (currentMode === "location") fetchLocation();
   });
 });
@@ -1009,10 +1020,7 @@ async function submitComment() {
 commentSubmit.addEventListener("click", submitComment);
 commentInput.addEventListener("keydown", e => { if (e.key === "Enter") submitComment(); });
 
-const viewportMeta = document.querySelector("meta[name=viewport]");
-const baseViewport = viewportMeta.content;
-commentInput.addEventListener("focus", () => { viewportMeta.content = baseViewport + ", maximum-scale=1"; });
-commentInput.addEventListener("blur",  () => { viewportMeta.content = baseViewport; });
+// Prevent iOS zoom on input focus via font-size (handled in CSS)
 
 /* ═══════════════════════════════════════
    IMAGE MODAL

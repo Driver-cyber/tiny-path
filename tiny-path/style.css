@@ -1543,3 +1543,43 @@ body {
   font-size: 12px;
   color: #bbb;
 }
+
+/* =========================
+   IOS ZOOM PREVENTION
+   iOS zooms in on any input with font-size < 16px.
+   Setting all inputs/textareas to 16px prevents this.
+========================= */
+
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* Auth inputs */
+.auth-fields input {
+  font-size: 16px !important;
+}
+
+/* Comment input */
+.comment-input-row input {
+  font-size: 16px !important;
+}
+
+/* Name edit inputs */
+.name-edit-row input,
+.settings-name-input,
+.profile-bio-input {
+  font-size: 16px !important;
+}
+
+/* =========================
+   SINGLE IMAGE — CENTERED
+   When there's only one image in a post,
+   center it rather than stretching full-width.
+========================= */
+
+.feed-image-wrap .post-image {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  display: block;
+}
