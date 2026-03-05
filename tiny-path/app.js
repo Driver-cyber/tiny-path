@@ -13,7 +13,9 @@ const UPLOAD_PRESET = "tiny-path-unsigned";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 /* ═══════════════════════════════════════
-   VERSION — bump this before every deploy
+   VERSION — bump before every deploy
+   Also update CACHE_VERSION in sw.js to match
+   e.g. "tinypath-v3.4" → "tinypath-v3.5"
 ═══════════════════════════════════════ */
 const VERSION = "v3.4 · 2026-03-04";
 
