@@ -108,33 +108,7 @@ function buildDetailImages(post) {
   `;
 }
 
-/* ═══════════════════════════════════════
-   COMPOSER IMAGE PREVIEW
-═══════════════════════════════════════ */
 
-const imagePreviewRow = document.getElementById("imagePreviewRow");
-
-function clearImagePreview() {
-  if (imagePreviewRow) imagePreviewRow.innerHTML = "";
-}
-
-imageInput.addEventListener("change", () => {
-  if (!imagePreviewRow) return;
-  imagePreviewRow.innerHTML = "";
-  const files = Array.from(imageInput.files);
-  files.forEach(file => {
-    const url = URL.createObjectURL(file);
-    const wrap = document.createElement("div");
-    wrap.className = "preview-thumb-wrap";
-    wrap.innerHTML = `<img src="${url}" class="preview-thumb" /><button type="button" class="preview-remove">✕</button>`;
-    wrap.querySelector(".preview-remove").addEventListener("click", () => {
-      // Can't surgically remove one file from FileList, so clear all and prompt re-select
-      imageInput.value = "";
-      imagePreviewRow.innerHTML = "";
-    });
-    imagePreviewRow.appendChild(wrap);
-  });
-});
 
 /* ═══════════════════════════════════════
    DOM REFS — APP
@@ -144,6 +118,7 @@ const postForm        = document.getElementById("postForm");
 const textInput       = document.getElementById("textInput");
 const imageInput      = document.getElementById("imageInput");
 const charCounter     = document.getElementById("charCounter");
+const imagePreviewRow = document.getElementById("imagePreviewRow");
 const feed            = document.getElementById("feed");
 const modeButtons     = document.querySelectorAll(".mode-btn");
 const locationPreview = document.getElementById("locationPreview");
@@ -420,6 +395,31 @@ modeButtons.forEach(btn => {
     currentMode = btn.dataset.mode;
     if (currentMode === "photo")    imageInput.click();
     if (currentMode === "location") fetchLocation();
+  });
+});
+
+/* ═══════════════════════════════════════
+   COMPOSER IMAGE PREVIEW
+═══════════════════════════════════════ */
+
+function clearImagePreview() {
+  if (imagePreviewRow) imagePreviewRow.innerHTML = "";
+}
+
+imageInput.addEventListener("change", () => {
+  if (!imagePreviewRow) return;
+  imagePreviewRow.innerHTML = "";
+  const files = Array.from(imageInput.files);
+  files.forEach(file => {
+    const url = URL.createObjectURL(file);
+    const wrap = document.createElement("div");
+    wrap.className = "preview-thumb-wrap";
+    wrap.innerHTML = `<img src="${url}" class="preview-thumb" /><button type="button" class="preview-remove">✕</button>`;
+    wrap.querySelector(".preview-remove").addEventListener("click", () => {
+      imageInput.value = "";
+      imagePreviewRow.innerHTML = "";
+    });
+    imagePreviewRow.appendChild(wrap);
   });
 });
 
