@@ -1,6 +1,6 @@
 # DECISIONS.md — Tiny Path Change Log & Current Context
 
-> This file is the living record of what has been decided. 
+> This file is the living record of what has been decided.
 > Brainstorming lives in conversation. Decisions live here.
 > When in doubt about project direction, this file wins.
 
@@ -8,30 +8,36 @@
 
 ## 🎯 Current North Star
 
-**Goal:** Maintain and evolve two companion apps — Tiny Path (friends) and Family Path (family) — as polished, intimate private social feeds inspired by the original Path app.
+**Goal:** Maintain and evolve Tiny Path as a polished, intimate private social feed for a small trusted friend group.
 
 **Vibe:** "Warm & Considered." Utility first, beauty close behind. Ship, learn, iterate.
 
-**Current Status:** Both apps live and deployed on Cloudflare Pages.
+**Current Version:** v3.5 · 2026-03-04
 
-| App | URL | Firebase Project |
+| App | URL | Backend |
 |---|---|---|
-| Tiny Path | `https://peaceful-speculoos-c9dc9a.netlify.app` | `tiny-path-b9bb4` |
-| Family Path | `https://remarkable-lokum-9b186c.netlify.app` | `family-path` |
+| Tiny Path | https://tiny-path.pages.dev | Supabase: czaztxqhkqwoviazqaeu |
+| Family Path | pending migration | Firebase (legacy, not yet migrated) |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-tiny-path/                  ← project root
-├── tiny-path/              ← Tiny Path deployable (friends group)
-├── family-path/            ← Family Path deployable (family)
+tiny-path/                  ← repo root
+├── tiny-path/              ← deployable app files
+│   ├── index.html
+│   ├── app.js              ← all JS logic
+│   ├── style.css
+│   ├── manifest.json
+│   ├── sw.js               ← service worker
+│   ├── robots.txt
+│   └── [icons / assets]
+├── family-path/            ← pending Supabase migration
 ├── CLAUDE.md
-└── DECISIONS.md
+├── DECISIONS.md
+└── memory/MEMORY.md
 ```
-
-Both app subfolders are self-contained Netlify drops. Each has its own Firebase project, branding, and config. Shared codebase — changes to features typically need to be mirrored in both.
 
 ---
 
@@ -40,151 +46,130 @@ Both app subfolders are self-contained Netlify drops. Each has its own Firebase 
 | Layer | Choice |
 |---|---|
 | Frontend | Vanilla HTML / CSS / JS (ES Modules) |
-| Database | Firebase Firestore |
-| Image Hosting | Cloudinary (`dqqml8dae` / `tiny-path-unsigned`) |
+| Database | Supabase (PostgreSQL) |
+| Auth | Supabase Auth (email + password) |
+| Image Hosting | Cloudinary (dqqml8dae / tiny-path-unsigned) |
 | Geocoding | OpenStreetMap Nominatim |
-| Hosting | Cloudflare Pages |
-
-**Stack is locked.** No new frameworks or services without a logged decision here.
+| Hosting | Cloudflare Pages (GitHub-connected) |
 
 ---
 
 ## 📝 Decision Log
 
 ### [2026-02-23] — V1 Shipped
-- Initialized project with HTML / CSS / Vanilla JS
-- Firebase Firestore for realtime posts
-- Cloudinary for image uploads
-- OpenStreetMap for reverse geocoding
-- Username persistence via `localStorage`
-- Deployed to Cloudflare Pages
-
-### [2026-02-26] — V2 Planning Complete
-
-**Identity & Auth:**
-- *Decision:* Keep the honor system. No login, no PIN, no auth layer.
-- *Rationale:* The group is small and trusted. Friction is the enemy. localStorage username is sufficient.
-
-**Reactions:**
-- *Decision:* Add thumbs up 👍 and thumbs down 👎 counters to each post.
-- *Rationale:* Simple, low-friction engagement. No identity attached to votes — just counts.
-- *Implementation note:* Store vote counts as fields on the post Firestore document (`upvotes: number`, `downvotes: number`). No per-user vote tracking for now.
-
-**Comments:**
-- *Decision:* Tap a post to open a **post detail view**. Comments live there, not inline on the feed.
-- *Rationale:* Keeps the main feed clean and scannable. Comments in a focused view feel more intentional.
-- *Implementation note:* Comments stored as a Firestore subcollection under each post (`posts/{postId}/comments`). Flat list, no threading.
-
-**User Filter / Profile View:**
-- *Decision:* Add ability to filter the feed by username.
-- *Rationale:* Lets users see their own posts and others' posts in isolation. Lightweight profile without building profiles.
-- *Implementation note:* Client-side filter or Firestore query by `username` field. No separate profile documents needed yet.
-
-**Day Grouping:**
-- *Decision:* Group feed posts under date headers ("Today", "Yesterday", "Feb 23").
-- *Rationale:* Core to the Path "journal" aesthetic. Makes the feed feel like a diary, not a ticker.
-- *Implementation note:* Client-side grouping logic on the `createdAt` timestamp. No Firestore changes needed.
-
-**Micro-animations:**
-- *Decision:* Add subtle entrance animations and transition polish throughout.
-- *Rationale:* Makes the app feel alive and tactile without being flashy.
-- *Implementation note:* CSS keyframe animations. Fade + slight translate on card entrance. Smooth transitions on detail view open/close. Nothing that adds JS complexity.
-
-**Visual Polish:**
-- *Decision:* Improve overall visual crispness toward classic Path aesthetic.
-- *Scope:* Typography refinement, spacing, card details, color consistency. Not a full redesign.
-
----
+- Vanilla JS, Firebase Firestore, Cloudinary, localStorage username
+- Deployed to Netlify (drag and drop)
 
 ### [2026-02-26] — V2 Shipped
+- Thumbs up/down vote counters
+- Post detail view (slide-up overlay)
+- Comments (flat, in detail view)
+- User filter (tap username to filter feed)
+- Day grouping (Today / Yesterday / date)
+- Micro-animations and visual polish
+- PWA: manifest.json + service worker
+- Settings modal with install instructions
+- Swipe right to close detail view
+- Haptic feedback on votes
+- Full timestamp in detail view
+- Web Share API button
+- Character counter (300 char limit)
+- Image-only card layout
 
-**Files created/modified:** `index.html`, `style.css`, `app.js` (new), `manifest.json` (new), `sw.js` (new), `icon.svg` (new)
+### [2026-02-26] — Family Path Fork
+- Forked into family-path/ subfolder
+- Separate Firebase project, earth-tone branding
 
-**Comments:** Stored as Firestore subcollection `posts/{id}/comments`. Realtime via `onSnapshot`. Shown in post detail overlay. Flat list, no threading. Submit on Enter or Send button.
+### [2026-03-04] — Firebase → Supabase Migration
+- Migrated from Firebase Firestore to Supabase PostgreSQL
+- Schema: posts table + comments table (post_id FK)
+- Realtime via Supabase postgres_changes channel
+- Moved hosting from Netlify to Cloudflare Pages (GitHub push-to-deploy)
+- Supabase project: czaztxqhkqwoviazqaeu
 
-**Upvotes / Downvotes:** `upvotes` and `downvotes` fields on post doc. `increment(1)` via `updateDoc`. No per-user tracking. Counters shown on feed cards and in detail view.
+### [2026-03-04] — Auth (v3.0)
+- Added Supabase Auth (email + password)
+- Login required to view anything
+- Full-screen auth overlay on load
+- Display name stored in user_metadata.username
+- Posting-as chip is now read-only (auth-driven)
+- Logout button in settings modal
+- Display name editable from settings modal
+- onAuthStateChange handles session restore automatically
 
-**Post Detail View:** Full-screen overlay slides up from bottom. Back button to close. Unsubscribes from comments `onSnapshot` on close.
+### [2026-03-04] — UI/UX Fixes (v3.1–v3.2)
+- Posting-as chip redesign (avatar + name, read-only)
+- Deterministic avatar color system (12-color palette, hashed from username)
+- Vote button sizing and styling improvements
+- Comment avatars added
+- Feed image tap → opens detail view (not fullscreen modal)
+- Auto-hyperlink URLs in post text (linkify function)
+- Smaller feed images (max 260px height)
+- Touch zoom disabled globally; re-enabled in modal and detail
+- Multi-photo upload: parallel Cloudinary uploads, JSON array storage
+- image_url column stores plain string (1 image) or JSON array (multiple) — backwards compatible
+- Feed: first image shown + "+N more" badge
+- Detail: first image full-width + thumbnail row below
+- Composer image preview (thumbnails before posting)
 
-**User Filter:** Tap any username in the feed to filter. Yellow banner shows active filter with "✕ All posts" clear button. Client-side filter on `allPosts` array.
+### [2026-03-04] — Profile View (v3.3)
+- Tapping avatar or username → profile overlay (slides from right, swipe to dismiss)
+- Profile shows: large avatar, display name, post count, member since (from earliest post), bio
+- Bio stored in user_metadata.bio via Supabase Auth
+- Own profile shows bio edit inline
+- Profile posts listed as compact cards (tap to open detail)
+- Detail view header avatar/username also tappable → profile
 
-**Day Grouping:** Client-side on `createdAt` timestamp. "Today", "Yesterday", or "Feb 23" format. Header divs inserted between groups.
+### [2026-03-04] — Bug Fixes (v3.4)
+- Fixed: logout → login button unclickable (showAuth now resets button + fields)
+- Fixed: settings modal scroll bleeding into feed (body overflow lock added)
+- Fixed: iOS viewport zoom/rearranging (user-scalable=no, removed dynamic viewport manipulation)
+- Fixed: iOS photo picker unreliable (file input wrapped in label element)
+- Fixed: all inputs at font-size 16px to prevent iOS auto-zoom
+- Fixed: camera roll multi-select via label click on iOS
 
-**PWA:** `manifest.json` + `sw.js` service worker. Caches shell files only; all Firebase/Cloudinary/font requests pass through. `display: standalone` for full-screen mode. iOS meta tags included. Service worker auto-registered from `app.js`.
-
-**Settings Gear / Install Prompt:** ⚙️ button in top-right of header. Opens bottom-sheet modal with 4-step iPhone add-to-homescreen instructions. On iOS Safari (non-standalone), auto-shows once per session after 1.8s delay via `sessionStorage`.
-
-**Icon:** `icon.svg` created (red rounded square with italic P). PNG icons (`icon-180.png`, `icon-192.png`, `icon-512.png`) must be provided separately — SVG works as browser favicon and in manifest for non-iOS devices.
-
-**Security:** `esc()` helper sanitizes all user-generated content before innerHTML injection.
+### [2026-03-04] — PWA & Lighthouse Polish (v3.5)
+- Service worker rewritten: network-first for app shell, cache-first for images
+- Cache version tied to app version (tinypath-v3.5) — busts on every deploy
+- manifest.json: proper any/maskable icon split, added scope and categories
+- index.html: Google Fonts now non-blocking (media="print" swap trick)
+- All images have alt attributes (generated from poster username)
+- ARIA roles, labels, aria-live on all interactive elements
+- Added main landmark, header role="banner"
+- Color contrast: all grays bumped to WCAG AA (#767676, #666)
+- robots.txt added (disallow all — private app)
+- meta description added
+- Version comment in app.js reminds to also bump sw.js CACHE_VERSION
 
 ---
 
-### [2026-02-26] — V2 Post-Ship Polish
+## 🔜 Next Up (Prioritized Backlog)
 
-**Icons & Favicon:**
-- Updated app icons for PWA homescreen (iOS/Android)
-- Updated favicon
+These were discussed and ranked by the user. Build in this order:
 
-**Fonts:**
-- Font refinements applied (details in code)
+1. ✅ Disable touch zoom (shipped v3.4)
+2. ✅ Images tap to detail in feed (shipped v3.2)
+3. ✅ Auto-hyperlink URLs (shipped v3.2)
+4. ✅ Smaller feed images (shipped v3.2)
+5. ✅ Multi-photo upload (shipped v3.2)
+6. ✅ Clickable avatars → profile view (shipped v3.3)
 
-**Swipe to Close Detail View:**
-- *Shipped and confirmed working.* Swipe-right gesture dismisses the post detail overlay.
-- *Implementation note:* Touch event listeners on the detail panel; tracking deltaX to trigger close.
-
-**iOS Comment Input Zoom Fix:**
-- Comment input `font-size` bumped from `14px` → `16px`. Fixed in PWA mode.
-- Safari browser still zoomed despite the font-size fix; added JS that temporarily sets `maximum-scale=1` on the viewport meta on input focus, restoring it on blur. This prevents auto-zoom without permanently disabling user pinch-zoom.
-
-**Other small improvements:** Various minor UI/UX tweaks applied this session.
-
----
-
-### [2026-03-04] — Firebase → Supabase Migration & Cloudflare Hosting
-
-**Database:**
-- *Decision:* Migrated from Firebase Firestore to Supabase (PostgreSQL)
-- *Rationale:* Simpler SQL data model, better dashboard, open source
-- *Two separate Supabase projects* — one per app, matching the previous Firebase setup
-- Tiny Path Supabase project: `czaztxqhkqwoviazqaeu`
-- Schema: `posts` table + `comments` table with `post_id` foreign key
-- Realtime via Supabase `postgres_changes` channel subscriptions
-- All existing Firebase data wiped; fresh start on Supabase
-
-**Hosting:**
-- *Decision:* Moved from Netlify to Cloudflare Pages
-- *Deployment:* Connected to GitHub repo — push to deploy
-
----
-
-### [2026-02-26] — Family Path Fork & Folder Reorganization
-
-**Family Path created:**
-- Forked from Tiny Path V2 into `family-path/` subfolder
-- Separate Firebase project: `family-path` (projectId)
-- Shared Cloudinary account (same upload preset)
-- Branding: "Family Path", earth-tone palette (`#8b6f52` / `#7a6047`)
-- Deployed as a separate Netlify project
-
-**Folder reorganization:**
-- Tiny Path deployable files moved into `tiny-path/` subfolder
-- Root now contains only project-level files (CLAUDE.md, DECISIONS.md, assets)
-- Both apps are now symmetric: `tiny-path/` and `family-path/` side by side
+**Next features to consider (not yet started):**
+- Post deletion (own posts only)
+- Notification / unread indicator for new posts
+- Family Path Supabase migration
 
 ---
 
 ## 💡 Parking Lot (Explicitly Deferred)
 
-These are good ideas. They are not forgotten. They are not V2.
-
 - Radial / fan-out post button
-- Emotion reactions (❤️ 😄 😢 etc.)
-- Avatar photo uploads  
-- Firebase Authentication / invite code gate
+- Emotion reactions (❤️ 😄 😢)
+- Avatar photo uploads
+- Invite code gate
 - Music sharing
 - Dark mode
-- PWA / installable app support (shipped in V2)
-- Post deletion / editing
+- Post editing
 - Threaded comments
-- Per-user vote tracking (preventing double votes)
+- Per-user vote tracking
+- Family Path migration (needs new Supabase project — free tier limit)

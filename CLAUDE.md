@@ -8,117 +8,113 @@
 ## 🧠 Memory & Strategy
 
 - **Read First:** Always check `DECISIONS.md` before starting any task. It tells you the current state of the project, what has been decided, and what is still open.
-- **Measure Twice:** For any change touching more than one file, propose a brief plan and wait for an explicit "go" or "y" before writing code.
-- **Ask Before Pivoting:** If a new request seems to contradict existing code or decisions, pause and ask: *"Are we pivoting, or extending?"* Don't refactor without confirmation.
-- **Don't Assume File Contents:** Do not read entire directories speculatively. Ask for specific file paths if context is needed. Only read what is necessary for the task at hand.
+- **Read the transcript** if referenced — full conversation history is at `/mnt/transcripts/`. Check `journal.txt` there for a catalog of past sessions.
+- **Measure Twice:** For any change touching more than one file, propose a brief plan and wait for an explicit "go" before writing code.
+- **Ask Before Pivoting:** If a new request seems to contradict existing code or decisions, pause and ask: *"Are we pivoting, or extending?"*
+- **Don't Assume File Contents:** Read the relevant files before editing. Only read what is necessary.
+- **Version bump rule:** Every time `app.js` is edited and output for deployment, auto-bump the `VERSION` constant at the top. Format: `"vX.Y · YYYY-MM-DD"`. Increment minor version (Y) for each set of changes. Also bump `CACHE_VERSION` in `sw.js` to match (e.g. `"tinypath-v3.5"`).
 
 ---
 
 ## 📁 Project Structure
 
-This repository contains **two independent apps**, each deployable as a standalone Netlify site:
-
 ```
-tiny-path/                  ← project root (you are here)
-├── tiny-path/              ← Tiny Path app (friends) — drag to Netlify
-├── family-path/            ← Family Path app (family) — drag to Netlify
-├── CLAUDE.md               ← this file (project-wide constitution)
-├── DECISIONS.md            ← project-wide decision log
+tiny-path/                  ← repo root (GitHub → Cloudflare Pages)
+├── tiny-path/              ← Tiny Path app (friends) — ACTIVE
+├── family-path/            ← Family Path app (family) — PENDING MIGRATION
+├── CLAUDE.md               ← this file
+├── DECISIONS.md            ← decision log and current state
+├── memory/
+│   └── MEMORY.md           ← quick-reference technical notes
 └── favicon_io (1)/         ← source icon assets
 ```
 
-Each app subfolder is self-contained: its own `index.html`, `app.js`, `style.css`, Firebase config, `manifest.json`, and `sw.js`. **When editing one app, only touch files inside its subfolder.**
+**Cloudflare Pages** serves the `tiny-path/` subfolder as root. All deployable files live there.
 
 ---
 
 ## 🌱 Project Identity
 
-**Tiny Path** (`tiny-path/`) is a private, mobile-first micro social network for a small trusted friend group (10–20 people). It is inspired by the warmth and intimacy of the original Path app (circa 2012).
+**Tiny Path** (`tiny-path/`) is a private, mobile-first micro social network for a small trusted friend group (10–20 people). Inspired by the warmth and intimacy of the original Path app (circa 2012).
 
-**Family Path** (`family-path/`) is a fork of Tiny Path for family use — same codebase, separate Firebase project, earth-tone color palette, and "Family Path" branding.
+**Family Path** (`family-path/`) is a sibling app for family use — same architecture, separate Supabase project, earth-tone palette. Migration from Firebase to Supabase is pending (free tier limit reached during Tiny Path migration).
 
-The shared emotional design goal is: *a digital journal you share with your closest people.* It should feel personal, light, and a little nostalgic — not like a social media platform.
+The shared emotional design goal: *a digital journal you share with your closest people.* Personal, light, a little nostalgic. Not a social media platform.
 
 ---
 
-## 🛠 Tech Stack (Locked Unless Explicitly Pivoted)
+## 🛠 Tech Stack (Locked)
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Frontend | Vanilla HTML / CSS / JS (ES Modules) | No framework. Keep it simple. |
-| Database | Firebase Firestore | Realtime sync via `onSnapshot` |
-| Image Hosting | Cloudinary | Unsigned upload preset |
+| Frontend | Vanilla HTML / CSS / JS (ES Modules) | No framework |
+| Database | Supabase (PostgreSQL) | Realtime via postgres_changes |
+| Auth | Supabase Auth | Email + password; display name in user_metadata.username; bio in user_metadata.bio |
+| Image Hosting | Cloudinary | dqqml8dae / tiny-path-unsigned |
 | Geocoding | OpenStreetMap Nominatim | Free, no key required |
-| Hosting | Cloudflare Pages | Connected to GitHub repo |
+| Hosting | Cloudflare Pages | Connected to GitHub, push to deploy |
 
-**Hosting:** Cloudflare Pages (connected to GitHub repo — push to deploy)
+**Stack is locked.** No new frameworks or services without a logged decision in DECISIONS.md.
 
 ---
 
 ## 🎨 Design Principles
 
-1. **Mobile-first, always.** Every UI decision should be evaluated on a phone screen first.
-2. **Focused elegance.** Prefer one well-crafted element over three mediocre ones. Clean typography, soft shadows, rounded cards.
-3. **Subtle motion, not spectacle.** Micro-animations should feel natural and alive — not performative. Fade-ins, gentle slides, soft transitions. Never flashy.
-4. **Emotional warmth.** This is a personal space. UI copy, icons, and interactions should feel human and intimate, not clinical.
-5. **Path aesthetic reference points:**
-   - Moment grouping by day (date headers: "Today", "Yesterday", "Feb 23")
-   - Rounded cards with soft shadows
-   - Warm off-white backgrounds
-   - Red primary brand color (`#c0392b`)
-   - Pacifico for logo, Inter for body
+1. **Mobile-first, always.** Every UI decision evaluated on iPhone first. Test in Safari PWA mode.
+2. **Focused elegance.** One well-crafted element over three mediocre ones. Clean typography, soft shadows, rounded cards.
+3. **Subtle motion, not spectacle.** Micro-animations should feel natural — not performative.
+4. **Emotional warmth.** UI copy, icons, and interactions should feel human and intimate.
+5. **Path aesthetic:** Day grouping, rounded cards, warm off-white (#f4f1ee), red brand color (#c0392b), Gentium/Nunito for logo, Inter for body.
 
 ---
 
 ## ⚙️ Feature Philosophy
 
-- **No login, no friction.** Username is stored in `localStorage`. Honor system is intentional for this trust group.
-- **Keep the feed clean.** The main feed is for scanning. Details (comments, reactions) live in a post detail view.
-- **Flat over complex.** No threading, no algorithms, no feeds within feeds. Chronological, grouped by day.
-- **Small footprint.** Every feature added should justify its weight. When in doubt, leave it out until someone asks for it twice.
+- **Auth required.** Login with email + password via Supabase Auth. No anonymous posting.
+- **Keep the feed clean.** Main feed is for scanning. Details live in post detail view.
+- **Flat over complex.** No threading, no algorithms. Chronological, grouped by day.
+- **Small footprint.** Every feature added should justify its weight.
 
 ---
 
-## 💡 Interaction Patterns (Shipped)
+## 💡 Interaction Patterns (Shipped as of v3.5)
 
-- **Post Detail View:** Tapping a post opens a focused detail view. Comments and vote counts live here.
-- **Upvote / Downvote:** Simple 👍 / 👎 counters on each post. No identity attached. Counts stored in Firestore.
-- **Comments:** Flat list. No threading. Shown in post detail view. Stored as a subcollection under each post document.
-- **User Filter / Profile View:** Ability to filter the feed by username. Shows only that user's posts. Acts as a lightweight profile.
-- **Day Grouping:** Feed is visually grouped under date headers. Posts are still ordered newest-first within each group.
-- **Micro-animations:** Cards fade and slide in on load. Detail view transitions smoothly. Buttons have tactile feedback states.
+- **Auth:** Full-screen login/signup overlay. Email + password. Display name in user_metadata.username.
+- **Posting-as chip:** Read-only, shows logged-in user.
+- **Post Detail View:** Slides in from right. Swipe right to dismiss.
+- **Upvote / Downvote:** Simple counters. Haptic feedback on mobile.
+- **Comments:** Flat list. Posted under logged-in display name.
+- **Multi-photo upload:** Unlimited photos per post. Parallel Cloudinary uploads. Feed shows first image + "+N more" badge. Detail shows first big + thumbnail row.
+- **Composer image preview:** Thumbnails shown before posting.
+- **Auto-hyperlinks:** URLs in post text auto-linked. Open in new tab.
+- **Profile view:** Tap avatar/username → profile overlay. Shows post count, member since, bio. Own profile has bio edit.
+- **Settings modal:** Display name edit, logout, install instructions. Locks body scroll.
+- **PWA:** Network-first service worker. Cache versioned to match app version.
+- **Touch zoom:** Disabled globally. Re-enabled in image modal. All inputs at font-size 16px.
+- **iOS photo picker:** File input wrapped in label for reliable iOS trigger.
+- **Accessibility:** ARIA roles, labels, alt text on all images, WCAG AA color contrast, main landmark, non-blocking fonts.
+- **robots.txt:** Disallows all crawlers (private app).
 
 ---
 
 ## 🪙 Token & Compute Etiquette
 
-- **Don't read speculatively.** Only open files when directly needed for the task.
-- **Propose before acting** on multi-file changes.
-- **Prefer targeted edits** (`str_replace`) over full file rewrites when only a section is changing.
-- **Ask for clarification** rather than making assumptions that require re-work.
-- These aren't hard blocks — they're a default posture. Efficiency is a form of respect.
-
----
-
-## 📝 Maintenance
-
-- After any meaningful decision or pivot, ask: *"Should I update DECISIONS.md?"*
-- After V2 features are shipped, propose a changelog entry.
-- If conversation history is getting long (20+ messages), suggest a `/clear` and context reset.
+- Don't read speculatively. Only open files when directly needed.
+- Propose before acting on multi-file changes.
+- Prefer targeted edits over full file rewrites.
+- Ask for clarification rather than making assumptions.
 
 ---
 
 ## 🚫 Parking Lot (Do Not Build Yet)
 
-These are good ideas that are explicitly deferred. Do not implement without a new planning conversation:
-
-- Radial / fan-out post button (Path's iconic UI)
-- Emotion reactions (❤️ 😄 😢 etc.)
+- Radial / fan-out post button
+- Emotion reactions (❤️ 😄 😢)
 - Avatar photo uploads
-- Firebase Authentication
 - Invite code gate
 - Music sharing
 - Dark mode
-- PWA / installable app (shipped in V2)
-- Post deletion
-- Post editing
+- Post deletion / editing
+- Threaded comments
+- Per-user vote tracking
+- Family Path Supabase migration (blocked by free tier)
