@@ -213,13 +213,13 @@ body {
 
 .posting-as-chip .chip-edit {
   font-size: 11px;
-  color: #aaa;
+  color: #767676;
   margin-left: 1px;
 }
 
 .posting-as-prompt {
   font-size: 13px;
-  color: #aaa;
+  color: #767676;
   font-style: italic;
   cursor: pointer;
   padding: 6px 0;
@@ -341,7 +341,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: #aaa;
+  color: #767676;
   padding: 10px 0 6px;
 }
 
@@ -401,7 +401,7 @@ body {
 
 .timestamp {
   font-size: 12px;
-  color: #aaa;
+  color: #767676;
   margin-top: 1px;
 }
 
@@ -488,7 +488,7 @@ body {
 
 .comment-hint {
   font-size: 13px;
-  color: #bbb;
+  color: #767676;
   cursor: pointer;
   margin-left: auto;
   transition: color 0.15s;
@@ -649,7 +649,7 @@ body {
 
 .no-comments {
   text-align: center;
-  color: #bbb;
+  color: #767676;
   font-size: 14px;
   padding: 20px 0;
   margin: 0;
@@ -814,7 +814,7 @@ body {
 }
 
 .step-note {
-  color: #999;
+  color: #767676;
   font-size: 13px;
 }
 
@@ -842,7 +842,7 @@ body {
 .settings-version {
   text-align: center;
   font-size: 11px;
-  color: #bbb;
+  color: #767676;
   padding: 10px 0 2px;
   letter-spacing: 0.04em;
 }
@@ -879,7 +879,7 @@ body {
 .char-counter {
   text-align: right;
   font-size: 12px;
-  color: #ccc;
+  color: #767676;
   margin: -6px 0 8px;
   transition: color 0.2s;
 }
@@ -1096,7 +1096,7 @@ body {
 .auth-toggle-btn {
   background: none;
   border: none;
-  color: #888;
+  color: #666;
   font-size: 13px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
@@ -1128,7 +1128,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  color: #bbb;
+  color: #767676;
   margin-bottom: 12px;
 }
 
@@ -1208,7 +1208,7 @@ body {
   padding: 10px;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
-  color: #888;
+  color: #666;
   cursor: pointer;
   margin-top: 4px;
   transition: border-color 0.15s, color 0.15s;
@@ -1396,12 +1396,12 @@ body {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #888;
+  color: #666;
   margin-bottom: 12px;
 }
 
 .profile-meta-sep {
-  color: #ccc;
+  color: #767676;
 }
 
 .profile-stat strong {
@@ -1417,7 +1417,7 @@ body {
 }
 
 .profile-bio-empty {
-  color: #bbb;
+  color: #767676;
   font-style: italic;
 }
 
@@ -1487,7 +1487,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  color: #bbb;
+  color: #767676;
   padding: 16px 16px 8px;
 }
 
@@ -1541,7 +1541,7 @@ body {
 
 .profile-post-time {
   font-size: 12px;
-  color: #bbb;
+  color: #767676;
 }
 
 /* =========================

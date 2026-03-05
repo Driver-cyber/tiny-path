@@ -17,7 +17,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
    Also update CACHE_VERSION in sw.js to match
    e.g. "tinypath-v3.4" → "tinypath-v3.5"
 ═══════════════════════════════════════ */
-const VERSION = "v3.4 · 2026-03-04";
+const VERSION = "v3.5 · 2026-03-04";
 
 /* ═══════════════════════════════════════
    SVG ICONS
@@ -98,11 +98,11 @@ function buildDetailImages(post) {
   const images = parseImages(post.image_url);
   if (images.length === 0) return "";
   if (images.length === 1) {
-    return `<img src="${esc(images[0])}" class="detail-image" />`;
+    return `<img src="${esc(images[0])}" class="detail-image" alt="Photo by ${esc(post.username)}" />`;
   }
   // iMessage style: first image big, rest as small row
   const thumbs = images.slice(1).map(url =>
-    `<img src="${esc(url)}" class="detail-thumb" loading="lazy" />`
+    `<img src="${esc(url)}" class="detail-thumb" loading="lazy" alt="Photo by ${esc(post.username)}" />`
   ).join("");
   return `
     <img src="${esc(images[0])}" class="detail-image" />
@@ -598,7 +598,7 @@ function renderFeed() {
       ${post.text     ? `<div class="text post-tap">${linkify(post.text)}</div>` : ""}
       ${firstImg ? `
         <div class="feed-image-wrap post-tap">
-          <img src="${esc(firstImg)}" class="post-image" loading="lazy" />
+          <img src="${esc(firstImg)}" class="post-image" loading="lazy" alt="Photo by ${esc(post.username)}" width="600" height="300" />
           ${extraCount > 0 ? `<div class="more-images-badge">+${extraCount} more</div>` : ""}
         </div>` : ""}
       <div class="post-actions">
@@ -722,7 +722,7 @@ async function openProfile(username) {
       const card = document.createElement("div");
       card.className = "profile-post-card";
       card.innerHTML = `
-        ${firstImg ? `<img src="${esc(firstImg)}" class="profile-post-thumb" loading="lazy" />` : ""}
+        ${firstImg ? `<img src="${esc(firstImg)}" class="profile-post-thumb" loading="lazy" alt="Photo by ${esc(post.username)}" width="60" height="60" />` : ""}
         <div class="profile-post-content">
           ${post.text ? `<div class="profile-post-text">${linkify(post.text)}</div>` : ""}
           <div class="profile-post-time">${timeAgo(post.created_at)}</div>
@@ -901,8 +901,7 @@ function openDetail(postId, post) {
   // Wire up all tappable images in detail view → fullscreen modal
   detailBody.querySelectorAll(".detail-image, .detail-thumb").forEach(img => {
     img.addEventListener("click", () => {
-      modalImage.src = img.src;
-      imageModal.classList.remove("hidden");
+      openModal(img.src, post.username);
     });
   });
 
@@ -1030,3 +1029,10 @@ commentInput.addEventListener("keydown", e => { if (e.key === "Enter") submitCom
 
 closeModal.addEventListener("click", () => imageModal.classList.add("hidden"));
 imageModal.addEventListener("click", e => { if (e.target === imageModal) imageModal.classList.add("hidden"); });
+
+// Set meaningful alt when opening modal
+function openModal(src, username) {
+  modalImage.src = src;
+  modalImage.alt = username ? `Photo by ${username}` : "Full size photo";
+  imageModal.classList.remove("hidden");
+}
