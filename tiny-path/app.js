@@ -41,8 +41,12 @@ let postsChannel        = null;
 let commentsChannel     = null;
 let allComments         = [];
 let appInitialized      = false;
-let currentMode         = 'text';
-let selectedLocation    = null;
+
+// FAB / sheet state
+let fabOpen             = false;
+let sheetMode           = null;   // 'text' | 'photo' | 'location'
+let sheetImageFile      = null;
+let sheetLocation       = null;
 
 /* ═══════════════════════════════════════
    DOM REFS — AUTH
@@ -66,13 +70,7 @@ const displayNameInput  = document.getElementById('displayNameInput');
    DOM REFS — APP
 ═══════════════════════════════════════ */
 
-const postForm          = document.getElementById('postForm');
-const textInput         = document.getElementById('textInput');
-const imageInput        = document.getElementById('imageInput');
-const charCounter       = document.getElementById('charCounter');
 const feed              = document.getElementById('feed');
-const modeButtons       = document.querySelectorAll('.mode-btn');
-const locationPreview   = document.getElementById('locationPreview');
 const filterBanner      = document.getElementById('filterBanner');
 const filterName        = document.getElementById('filterName');
 const clearFilter       = document.getElementById('clearFilter');
@@ -92,6 +90,28 @@ const settingsEmail     = document.getElementById('settingsEmail');
 const settingsDisplayName = document.getElementById('settingsDisplayName');
 const saveDisplayName   = document.getElementById('saveDisplayName');
 const logoutBtn         = document.getElementById('logoutBtn');
+
+/* ═══════════════════════════════════════
+   DOM REFS — FAB + SHEET
+═══════════════════════════════════════ */
+
+const fabContainer      = document.getElementById('fabContainer');
+const fab               = document.getElementById('fab');
+const fabBackdrop       = document.getElementById('fabBackdrop');
+const radialLocation    = document.getElementById('radialLocation');
+const radialPhoto       = document.getElementById('radialPhoto');
+const radialText        = document.getElementById('radialText');
+const postSheet         = document.getElementById('postSheet');
+const sheetClose        = document.getElementById('sheetClose');
+const sheetSubmit       = document.getElementById('sheetSubmit');
+const sheetTextInput    = document.getElementById('sheetTextInput');
+const sheetCharCounter  = document.getElementById('sheetCharCounter');
+const sheetImageInput   = document.getElementById('sheetImageInput');
+const sheetPhotoArea    = document.getElementById('sheetPhotoArea');
+const sheetPhotoPreview = document.getElementById('sheetPhotoPreview');
+const sheetChangePhoto  = document.getElementById('sheetChangePhoto');
+const sheetLocationPill = document.getElementById('sheetLocationPill');
+const sheetLocationText = document.getElementById('sheetLocationText');
 
 /* ═══════════════════════════════════════
    SECURITY — HTML ESCAPE
@@ -153,7 +173,6 @@ authForm.addEventListener('submit', async e => {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      // onAuthStateChange handles the rest
     }
   } catch (err) {
     authError.textContent = err.message;
@@ -211,7 +230,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
     return;
   }
 
-  // Only act on these events to avoid double-init on token refresh
   if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN') return;
 
   currentUser = session.user;
@@ -238,13 +256,12 @@ function initApp() {
   appInitialized = true;
   showScreen('app');
 
-  settingsEmail.textContent      = currentUser.email;
-  settingsDisplayName.value      = currentProfile.display_name;
+  settingsEmail.textContent = currentUser.email;
+  settingsDisplayName.value = currentProfile.display_name;
 
   subscribePostsRealtime();
   loadPosts();
 
-  // Auto-show install prompt on iOS Safari once per session
   const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = navigator.standalone === true;
   if (isIOS && !isStandalone && !sessionStorage.getItem('installShown')) {
@@ -261,6 +278,8 @@ function teardownApp() {
   allComments = [];
   feed.innerHTML = '';
   closeDetail(true);
+  closeFab();
+  closeSheet();
 }
 
 /* ═══════════════════════════════════════
@@ -444,46 +463,186 @@ clearFilter.addEventListener('click', () => {
 });
 
 /* ═══════════════════════════════════════
-   POST FORM
+   FAB — OPEN / CLOSE
 ═══════════════════════════════════════ */
 
-const CHAR_LIMIT_VAL = CHAR_LIMIT;
-
-textInput.addEventListener('input', () => {
-  const len = textInput.value.length;
-  charCounter.textContent = `${len} / ${CHAR_LIMIT_VAL}`;
-  charCounter.classList.remove('char-near', 'char-over');
-  if (len >= CHAR_LIMIT_VAL - 30) charCounter.classList.add('char-near');
-  if (len >= CHAR_LIMIT_VAL)      charCounter.classList.add('char-over');
+fab.addEventListener('click', () => {
+  if (fabOpen) closeFab();
+  else openFab();
 });
 
-modeButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    modeButtons.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentMode = btn.dataset.mode;
-    if (currentMode === 'photo')    imageInput.click();
-    if (currentMode === 'location') fetchLocation();
-  });
+fabBackdrop.addEventListener('click', closeFab);
+
+function openFab() {
+  fabOpen = true;
+  fabContainer.classList.add('open');
+  fabBackdrop.classList.remove('hidden');
+  if (navigator.vibrate) navigator.vibrate(8);
+}
+
+function closeFab() {
+  fabOpen = false;
+  fabContainer.classList.remove('open');
+  fabBackdrop.classList.add('hidden');
+}
+
+/* ═══════════════════════════════════════
+   FAB — RADIAL BUTTONS
+═══════════════════════════════════════ */
+
+radialText.addEventListener('click', () => {
+  closeFab();
+  openSheet('text');
 });
 
-postForm.addEventListener('submit', async e => {
-  e.preventDefault();
+radialPhoto.addEventListener('click', () => {
+  closeFab();
+  openSheet('photo');
+});
 
-  const text      = textInput.value.trim();
-  const imageFile = imageInput.files[0];
+radialLocation.addEventListener('click', () => {
+  closeFab();
+  openSheet('location');
+});
 
-  if (!text && !imageFile && !selectedLocation) return;
+/* ═══════════════════════════════════════
+   POST SHEET — OPEN / CLOSE
+═══════════════════════════════════════ */
 
-  const submitBtn = postForm.querySelector('.post-btn');
-  submitBtn.disabled    = true;
-  submitBtn.textContent = 'Posting…';
+function openSheet(mode) {
+  sheetMode      = mode;
+  sheetImageFile = null;
+  sheetLocation  = null;
+
+  // Reset sheet state
+  sheetTextInput.value      = '';
+  sheetCharCounter.textContent = `0 / ${CHAR_LIMIT}`;
+  sheetCharCounter.classList.remove('char-near', 'char-over');
+  sheetPhotoArea.classList.add('hidden');
+  sheetLocationPill.classList.add('hidden');
+  sheetSubmit.disabled = true;
+
+  if (mode === 'text') {
+    sheetTextInput.placeholder = "What's happening?";
+    postSheet.classList.remove('hidden');
+    setTimeout(() => sheetTextInput.focus(), 50);
+
+  } else if (mode === 'photo') {
+    sheetTextInput.placeholder = 'Add a caption… (optional)';
+    postSheet.classList.remove('hidden');
+    sheetImageInput.value = '';
+    sheetImageInput.click();
+
+  } else if (mode === 'location') {
+    sheetTextInput.placeholder = 'Add a note… (optional)';
+    sheetLocationPill.classList.remove('hidden');
+    sheetLocationText.textContent = 'Fetching location…';
+    postSheet.classList.remove('hidden');
+    fetchLocation();
+  }
+}
+
+function closeSheet() {
+  postSheet.classList.add('hidden');
+  sheetMode      = null;
+  sheetImageFile = null;
+  sheetLocation  = null;
+  sheetTextInput.value = '';
+  sheetPhotoArea.classList.add('hidden');
+  sheetLocationPill.classList.add('hidden');
+  sheetSubmit.disabled = true;
+}
+
+sheetClose.addEventListener('click', closeSheet);
+
+/* ═══════════════════════════════════════
+   POST SHEET — CHAR COUNTER
+═══════════════════════════════════════ */
+
+sheetTextInput.addEventListener('input', () => {
+  const len = sheetTextInput.value.length;
+  sheetCharCounter.textContent = `${len} / ${CHAR_LIMIT}`;
+  sheetCharCounter.classList.remove('char-near', 'char-over');
+  if (len >= CHAR_LIMIT - 30) sheetCharCounter.classList.add('char-near');
+  if (len >= CHAR_LIMIT)      sheetCharCounter.classList.add('char-over');
+  updateSheetSubmitState();
+});
+
+function updateSheetSubmitState() {
+  const hasText  = sheetTextInput.value.trim().length > 0;
+  const hasPhoto = !!sheetImageFile;
+  const hasLocation = !!sheetLocation;
+
+  if (sheetMode === 'text')     sheetSubmit.disabled = !hasText;
+  if (sheetMode === 'photo')    sheetSubmit.disabled = !hasPhoto;
+  if (sheetMode === 'location') sheetSubmit.disabled = !hasLocation;
+}
+
+/* ═══════════════════════════════════════
+   POST SHEET — PHOTO HANDLING
+═══════════════════════════════════════ */
+
+sheetImageInput.addEventListener('change', () => {
+  const file = sheetImageInput.files[0];
+  if (!file) return;
+
+  sheetImageFile = file;
+  const url = URL.createObjectURL(file);
+  sheetPhotoPreview.src = url;
+  sheetPhotoArea.classList.remove('hidden');
+  updateSheetSubmitState();
+});
+
+sheetChangePhoto.addEventListener('click', () => {
+  sheetImageInput.value = '';
+  sheetImageInput.click();
+});
+
+/* ═══════════════════════════════════════
+   LOCATION
+═══════════════════════════════════════ */
+
+async function fetchLocation() {
+  if (!navigator.geolocation) {
+    sheetLocationText.textContent = 'Geolocation not supported';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    async ({ coords: { latitude: lat, longitude: lon } }) => {
+      try {
+        const res  = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+        );
+        const data = await res.json();
+        const city  = data.address.city || data.address.town || data.address.village || '';
+        const state = data.address.state || '';
+        sheetLocation = `${city}, ${state}`;
+        sheetLocationText.textContent = sheetLocation;
+        updateSheetSubmitState();
+      } catch {
+        sheetLocationText.textContent = 'Could not fetch location';
+      }
+    },
+    () => { sheetLocationText.textContent = 'Location permission denied'; }
+  );
+}
+
+/* ═══════════════════════════════════════
+   POST SHEET — SUBMIT
+═══════════════════════════════════════ */
+
+sheetSubmit.addEventListener('click', async () => {
+  const text = sheetTextInput.value.trim();
+
+  sheetSubmit.disabled    = true;
+  sheetSubmit.textContent = 'Posting…';
 
   try {
     let image_url = null;
-    if (imageFile) {
+
+    if (sheetImageFile) {
       const formData = new FormData();
-      formData.append('file', imageFile);
+      formData.append('file', sheetImageFile);
       formData.append('upload_preset', UPLOAD_PRESET);
       const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
         method: 'POST', body: formData
@@ -497,49 +656,17 @@ postForm.addEventListener('submit', async e => {
       display_name: currentProfile.display_name,
       text:         text || null,
       image_url,
-      location:     selectedLocation
+      location:     sheetLocation || null
     });
 
-    textInput.value  = '';
-    imageInput.value = '';
-    selectedLocation = null;
-    charCounter.textContent = `0 / ${CHAR_LIMIT_VAL}`;
-    charCounter.classList.remove('char-near', 'char-over');
-    locationPreview.classList.add('hidden');
-    modeButtons.forEach(b => b.classList.remove('active'));
-    document.querySelector('[data-mode="text"]').classList.add('active');
-    currentMode = 'text';
-  } finally {
-    submitBtn.disabled    = false;
-    submitBtn.textContent = 'Post';
+    if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
+    closeSheet();
+  } catch {
+    sheetSubmit.disabled    = false;
+    sheetSubmit.textContent = 'Post';
+    alert('Could not post. Please try again.');
   }
 });
-
-/* ═══════════════════════════════════════
-   LOCATION
-═══════════════════════════════════════ */
-
-async function fetchLocation() {
-  if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
-  navigator.geolocation.getCurrentPosition(
-    async ({ coords: { latitude: lat, longitude: lon } }) => {
-      try {
-        const res  = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
-        );
-        const data = await res.json();
-        const city  = data.address.city || data.address.town || data.address.village || '';
-        const state = data.address.state || '';
-        selectedLocation = `${city}, ${state}`;
-        locationPreview.textContent = `📍 ${selectedLocation}`;
-        locationPreview.classList.remove('hidden');
-      } catch {
-        alert('Could not fetch location.');
-      }
-    },
-    () => alert('Location permission denied.')
-  );
-}
 
 /* ═══════════════════════════════════════
    POST DETAIL — OPEN / CLOSE
@@ -560,6 +687,7 @@ function openDetail(postId) {
   subscribeCommentsRealtime(postId);
 
   detailOverlay.classList.remove('hidden');
+  fabContainer.classList.add('hidden');
   document.body.style.overflow = 'hidden';
 }
 
@@ -569,6 +697,7 @@ function closeDetail(skipAnimation = false) {
     detailOverlay.style.transform  = '';
     detailOverlay.style.transition = '';
     document.body.style.overflow   = '';
+    fabContainer.classList.remove('hidden');
     unsubscribeComments();
     currentDetailPostId = null;
     currentDetailPost   = null;
@@ -623,12 +752,8 @@ function renderDetailBody(post) {
     </div>
   `;
 
-  if (canEdit) {
-    detailBody.querySelector('.edit-btn').addEventListener('click', () => renderDetailBodyEdit(post));
-  }
-  if (canDelete) {
-    detailBody.querySelector('.delete-btn').addEventListener('click', () => deletePost(post.id));
-  }
+  if (canEdit)   detailBody.querySelector('.edit-btn').addEventListener('click', () => renderDetailBodyEdit(post));
+  if (canDelete) detailBody.querySelector('.delete-btn').addEventListener('click', () => deletePost(post.id));
 
   detailBody.querySelector('.detail-upvote').addEventListener('click', () => {
     if (navigator.vibrate) navigator.vibrate(12);
@@ -645,11 +770,7 @@ function renderDetailBody(post) {
   if (navigator.share) {
     shareBtn.addEventListener('click', async () => {
       try {
-        await navigator.share({
-          title: `${post.display_name} on Path`,
-          text:  post.text || 'Check this out on Path',
-          url:   window.location.href
-        });
+        await navigator.share({ title: `${post.display_name} on Path`, text: post.text || '', url: window.location.href });
       } catch {}
     });
   } else {
@@ -706,18 +827,15 @@ function renderDetailBodyEdit(post) {
     if (!newText) return;
     saveBtn.disabled    = true;
     saveBtn.textContent = 'Saving…';
-
     const { error } = await supabase
       .from('posts')
       .update({ text: newText, edited_at: new Date().toISOString() })
       .eq('id', post.id);
-
     if (error) {
       saveBtn.disabled    = false;
       saveBtn.textContent = 'Save';
       alert('Could not save. Try again.');
     }
-    // Realtime UPDATE fires → renderDetailBody(updatedPost) called automatically
   });
 
   if (post.image_url) {
@@ -735,7 +853,6 @@ function renderDetailBodyEdit(post) {
 async function deletePost(postId) {
   if (!confirm('Delete this post? This cannot be undone.')) return;
   await supabase.from('posts').delete().eq('id', postId);
-  // Realtime DELETE fires → post removed from feed, detail closed
 }
 
 /* ═══════════════════════════════════════
@@ -758,9 +875,7 @@ function subscribeCommentsRealtime(postId) {
   commentsChannel = supabase
     .channel(`comments:${postId}`)
     .on('postgres_changes', {
-      event:  'INSERT',
-      schema: 'public',
-      table:  'comments',
+      event: 'INSERT', schema: 'public', table: 'comments',
       filter: `post_id=eq.${postId}`
     }, ({ new: comment }) => {
       if (!allComments.find(c => c.id === comment.id)) {
@@ -772,10 +887,7 @@ function subscribeCommentsRealtime(postId) {
 }
 
 function unsubscribeComments() {
-  if (commentsChannel) {
-    supabase.removeChannel(commentsChannel);
-    commentsChannel = null;
-  }
+  if (commentsChannel) { supabase.removeChannel(commentsChannel); commentsChannel = null; }
   allComments = [];
 }
 
@@ -831,12 +943,10 @@ detailOverlay.addEventListener('touchstart', e => {
 detailOverlay.addEventListener('touchmove', e => {
   const dx = e.touches[0].clientX - swipeStartX;
   const dy = e.touches[0].clientY - swipeStartY;
-
   if (!swipeDecided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
     swipeDecided = true;
     isSwiping    = dx > 0 && Math.abs(dx) > Math.abs(dy);
   }
-
   if (!isSwiping) return;
   e.preventDefault();
   detailOverlay.style.transform = `translateX(${Math.max(0, dx)}px)`;
@@ -848,9 +958,7 @@ detailOverlay.addEventListener('touchend', e => {
   const wasSwipe = isSwiping;
   swipeDecided   = false;
   isSwiping      = false;
-
   if (!wasSwipe) { detailOverlay.style.transition = ''; return; }
-
   detailOverlay.style.transition = 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
   if (dx > 80) {
     detailOverlay.style.transform = 'translateX(110%)';
@@ -877,15 +985,10 @@ settingsModal.addEventListener('click', e => {
 saveDisplayName.addEventListener('click', async () => {
   const newName = settingsDisplayName.value.trim();
   if (!newName || newName === currentProfile.display_name) return;
-
   saveDisplayName.disabled    = true;
   saveDisplayName.textContent = 'Saving…';
-
   const { error } = await supabase
-    .from('profiles')
-    .update({ display_name: newName })
-    .eq('id', currentUser.id);
-
+    .from('profiles').update({ display_name: newName }).eq('id', currentUser.id);
   saveDisplayName.disabled    = false;
   saveDisplayName.textContent = error ? 'Save' : 'Saved ✓';
   if (!error) {
@@ -896,7 +999,6 @@ saveDisplayName.addEventListener('click', async () => {
 
 logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut();
-  // onAuthStateChange handles teardown + screen switch
 });
 
 /* ═══════════════════════════════════════
@@ -915,7 +1017,7 @@ imageModal.addEventListener('click', e => {
 const viewportMeta = document.querySelector('meta[name=viewport]');
 const baseViewport = viewportMeta.content;
 
-[commentInput, settingsDisplayName].forEach(input => {
+[commentInput, settingsDisplayName, sheetTextInput].forEach(input => {
   input.addEventListener('focus', () => {
     viewportMeta.content = baseViewport + ', maximum-scale=1';
   });
