@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Tiny Path</title>
-  <meta name="description" content="Tiny Path — your private little corner of the internet. Share moments with the people who matter." />
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json" />
@@ -16,158 +15,177 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
 
-  <!-- Preconnect to Google Fonts to reduce render blocking -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <!-- Load fonts non-blocking with media trick -->
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@1,700&family=Nunito:ital,wght@1,800&family=Inter:wght@400;600&display=swap" />
-  <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@1,700&family=Nunito:ital,wght@1,800&family=Inter:wght@400;600&display=swap" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@1,700&family=Nunito:ital,wght@1,800&family=Inter:wght@400;600&display=swap" /></noscript>
-
+  <link href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:ital,wght@1,700&family=Nunito:ital,wght@1,800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- Top Bar -->
-  <header class="topbar" role="banner">
-    <div class="topbar-inner">
-      <div class="logo" aria-label="Tiny Path">
-        <span class="logo-tiny">Tiny</span>
-        <span class="logo-path">Path</span>
-      </div>
-      <button class="settings-btn" id="settingsBtn" aria-label="Open settings">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      </button>
-    </div>
-  </header>
-
-  <!-- Active Filter Banner -->
-  <div id="filterBanner" class="filter-banner hidden" role="status">
-    <span>Viewing <strong id="filterName"></strong></span>
-    <button id="clearFilter">✕ All posts</button>
-  </div>
-
-  <main class="container">
-
-    <form id="postForm" class="composer" aria-label="Create a post">
-
-      <!-- Posting-as chip -->
-      <div id="postingAsRow" class="posting-as-row"></div>
-      <input id="usernameInput" placeholder="Your name" autocomplete="nickname" hidden />
-
-      <textarea id="textInput" placeholder="What's happening?" aria-label="Post text"></textarea>
-      <div id="charCounter" class="char-counter" aria-live="polite">0 / 300</div>
-
-      <div class="mode-bar" role="toolbar" aria-label="Post type">
-        <button class="mode-btn active" data-mode="text" aria-label="Text post" type="button">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-        <button class="mode-btn" data-mode="photo" aria-label="Add photos" type="button">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-        </button>
-        <button class="mode-btn" data-mode="location" aria-label="Add location" type="button">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        </button>
-      </div>
-
-      <label id="imageInputLabel" style="display:none" aria-label="Select photos"><input type="file" id="imageInput" accept="image/*" multiple /></label>
-      <div id="imagePreviewRow" class="image-preview-row" role="list" aria-label="Selected photos"></div>
-      <div id="locationPreview" class="location-preview hidden" aria-live="polite"></div>
-
-      <button type="submit" class="post-btn">Post</button>
-    </form>
-
-    <div id="feed" role="feed" aria-label="Posts"></div>
-  </main>
-
-  <!-- Fullscreen Image Modal -->
-  <div id="imageModal" class="image-modal hidden" role="dialog" aria-modal="true" aria-label="Full size image">
-    <button id="closeModal" class="close-modal-btn" aria-label="Close image">&times;</button>
-    <img id="modalImage" alt="Full size post image" />
-  </div>
-
-  <!-- Post Detail Overlay -->
-  <div id="detailOverlay" class="detail-overlay hidden" role="dialog" aria-modal="true" aria-label="Post detail">
-    <div class="detail-header" id="detailHeader">
-      <button class="detail-back" id="detailBack" aria-label="Go back">‹ Back</button>
-      <span class="detail-title">Post</span>
-    </div>
-    <div class="detail-body" id="detailBody"></div>
-    <div class="comment-section">
-      <div id="commentList" class="comment-list" role="list" aria-label="Comments"></div>
-      <div class="comment-input-row">
-        <input id="commentInput" placeholder="Add a comment…" autocomplete="off" aria-label="Write a comment" />
-        <button id="commentSubmit" aria-label="Send comment">Send</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Settings Modal -->
-  <div id="settingsModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-label="Settings">
-    <div class="settings-card">
-      <div class="settings-header">
-        <span class="settings-title">⚙️ Settings</span>
-        <button id="closeSettings" class="close-btn" aria-label="Close settings">&times;</button>
-      </div>
-      <div class="settings-body">
-        <!-- Account section -->
-        <div class="settings-section">
-          <div class="settings-section-label">Account</div>
-          <div class="settings-account-row">
-            <span id="settingsDisplayName" class="settings-display-name"></span>
-            <button id="editDisplayBtn" class="settings-edit-btn">Edit name</button>
-          </div>
-          <input id="displayNameEdit" type="text" class="settings-name-input hidden" placeholder="Display name" maxlength="30" aria-label="Display name" />
-          <button id="saveDisplayBtn" class="settings-save-btn hidden">Save</button>
-          <p id="displayNameErr" class="settings-err" role="alert"></p>
-          <button id="logoutBtn" class="logout-btn">Log out</button>
-        </div>
-
-        <!-- Install section -->
-        <div class="settings-section">
-          <div class="settings-section-label">Add to Home Screen</div>
-          <p class="settings-subtitle">Get the full app experience on your iPhone:</p>
-          <ol class="install-steps">
-            <li>Open in <strong>Safari</strong> <span class="step-note">(not Chrome)</span></li>
-            <li>Tap the <strong>Share</strong> button <span class="share-icon">⬆</span></li>
-            <li>Tap <strong>"Add to Home Screen"</strong></li>
-            <li>Tap <strong>Add</strong></li>
-          </ol>
-        </div>
-      </div>
-      <div class="settings-version" id="settingsVersion">Tiny Path v3.4 · 2026-03-04</div>
-    </div>
-  </div>
-
-  <!-- Profile Overlay -->
-  <div id="profileOverlay" class="profile-overlay hidden" role="dialog" aria-modal="true" aria-label="User profile">
-    <div class="profile-header-bar" id="profileHeaderBar">
-      <button class="detail-back" id="profileBack" aria-label="Go back">‹ Back</button>
-      <span class="detail-title">Profile</span>
-    </div>
-    <div class="profile-body" id="profileBody"></div>
-  </div>
-
-  <!-- Auth Overlay -->
-  <div id="authOverlay" class="auth-overlay" role="dialog" aria-modal="true" aria-label="Sign in">
+  <!-- ── AUTH SCREEN ──────────────────────────────────── -->
+  <div id="authScreen" class="auth-screen">
     <div class="auth-card">
-      <div class="auth-logo" aria-label="Tiny Path">
+      <div class="auth-logo">
         <span class="logo-tiny">Tiny</span>
         <span class="logo-path">Path</span>
       </div>
-      <h1 id="authTitle" class="auth-title">Welcome back</h1>
-      <div class="auth-fields">
-        <input id="authEmail" type="email" placeholder="Email" autocomplete="email" aria-label="Email address" />
-        <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password" />
-        <div id="authDisplayRow" class="hidden">
-          <input id="authDisplayName" type="text" placeholder="Display name (e.g. Jordan)" maxlength="30" autocomplete="nickname" aria-label="Display name" />
-        </div>
-        <p id="authError" class="auth-error" role="alert"></p>
-        <button id="authSubmitBtn" class="auth-submit-btn">Log in</button>
-        <button id="authToggleBtn" class="auth-toggle-btn" type="button">New here? Create an account</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="signin">Sign in</button>
+        <button class="auth-tab" data-tab="signup">Sign up</button>
+      </div>
+      <form id="authForm" class="auth-form">
+        <input id="authEmail" type="email" placeholder="Email address" autocomplete="email" required />
+        <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" required />
+        <div id="authError" class="auth-error hidden"></div>
+        <button type="submit" class="auth-btn" id="authSubmit">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── CHECK EMAIL SCREEN ───────────────────────────── -->
+  <div id="checkEmailScreen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-tiny">Tiny</span>
+        <span class="logo-path">Path</span>
+      </div>
+      <div class="check-email-body">
+        <div class="check-email-icon">✉️</div>
+        <h2>Check your email</h2>
+        <p>We sent a verification link to <strong id="sentEmailDisplay"></strong>. Click it to activate your account, then come back and sign in.</p>
+        <button id="backToSignIn" class="auth-btn" type="button">Back to sign in</button>
       </div>
     </div>
   </div>
+
+  <!-- ── DISPLAY NAME SCREEN ──────────────────────────── -->
+  <div id="displayNameScreen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-tiny">Tiny</span>
+        <span class="logo-path">Path</span>
+      </div>
+      <div class="display-name-body">
+        <h2>What should we call you?</h2>
+        <p>This is the name your friends will see. You can change it anytime in Settings.</p>
+        <form id="displayNameForm" class="auth-form">
+          <input id="displayNameInput" placeholder="Your name" maxlength="30" autocomplete="nickname" required />
+          <button type="submit" class="auth-btn">Let's go →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── APP SHELL ─────────────────────────────────────── -->
+  <div id="appShell" class="hidden">
+
+    <!-- Top Bar -->
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="logo">
+          <span class="logo-tiny">Tiny</span>
+          <span class="logo-path">Path</span>
+        </div>
+        <button class="settings-btn" id="settingsBtn" aria-label="Settings">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Filter Banner -->
+    <div id="filterBanner" class="filter-banner hidden">
+      <span>Viewing <strong id="filterName"></strong></span>
+      <button id="clearFilter">✕ All posts</button>
+    </div>
+
+    <div class="container">
+
+      <form id="postForm" class="composer">
+        <textarea id="textInput" placeholder="What's happening?"></textarea>
+        <div id="charCounter" class="char-counter">0 / 300</div>
+
+        <div class="mode-bar">
+          <button class="mode-btn active" data-mode="text" aria-label="Text post" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="mode-btn" data-mode="photo" aria-label="Photo post" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </button>
+          <button class="mode-btn" data-mode="location" aria-label="Location post" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </button>
+        </div>
+
+        <input type="file" id="imageInput" accept="image/*" hidden />
+        <div id="locationPreview" class="location-preview hidden"></div>
+
+        <button type="submit" class="post-btn">Post</button>
+      </form>
+
+      <div id="feed"></div>
+    </div>
+
+    <!-- Fullscreen Image Modal -->
+    <div id="imageModal" class="image-modal hidden">
+      <span id="closeModal" class="close-modal-btn">&times;</span>
+      <img id="modalImage" />
+    </div>
+
+    <!-- Post Detail Overlay -->
+    <div id="detailOverlay" class="detail-overlay hidden">
+      <div class="detail-header" id="detailHeader">
+        <button class="detail-back" id="detailBack">‹ Back</button>
+        <span class="detail-title">Post</span>
+      </div>
+      <div class="detail-body" id="detailBody"></div>
+      <div class="comment-section">
+        <div id="commentList" class="comment-list"></div>
+        <div class="comment-input-row">
+          <input id="commentInput" placeholder="Add a comment…" autocomplete="off" />
+          <button id="commentSubmit" type="button">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay hidden">
+      <div class="settings-card">
+        <div class="settings-header">
+          <span class="settings-title">Settings</span>
+          <button id="closeSettings" class="close-btn">&times;</button>
+        </div>
+        <div class="settings-body">
+
+          <div class="settings-section-label">Account</div>
+          <div class="settings-field">
+            <label>Signed in as</label>
+            <span id="settingsEmail" class="settings-email-display"></span>
+          </div>
+          <div class="settings-field">
+            <label>Display name</label>
+            <div class="settings-name-row">
+              <input id="settingsDisplayName" placeholder="Your name" maxlength="30" />
+              <button id="saveDisplayName" class="save-name-btn" type="button">Save</button>
+            </div>
+          </div>
+          <button id="logoutBtn" class="logout-btn" type="button">Sign out</button>
+
+          <div class="settings-divider"></div>
+
+          <div class="settings-section-label">📱 Add to Home Screen</div>
+          <p class="settings-subtitle">Get the full app experience on your iPhone — no browser, full screen:</p>
+          <ol class="install-steps">
+            <li>Open this page in <strong>Safari</strong> <span class="step-note">(must be Safari, not Chrome)</span></li>
+            <li>Tap the <strong>Share</strong> button at the bottom <span class="share-icon">⬆</span></li>
+            <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+            <li>Tap <strong>Add</strong> in the top-right corner</li>
+          </ol>
+          <p class="settings-tip">Tiny Path will open like a native app — no address bar, no tabs. Just Tiny Path.</p>
+
+        </div>
+        <div class="settings-version">Tiny Path v3.0</div>
+      </div>
+    </div>
+
+  </div><!-- /#appShell -->
 
   <script type="module" src="app.js"></script>
 </body>

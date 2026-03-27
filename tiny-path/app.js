@@ -1,23 +1,17 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 /* ═══════════════════════════════════════
-   SUPABASE + CLOUDINARY CONFIG
+   CONFIG
 ═══════════════════════════════════════ */
 
-const SUPABASE_URL  = "https://czaztxqhkqwoviazqaeu.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6YXp0eHFoa3F3b3ZpYXpxYWV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDEyNjgsImV4cCI6MjA4ODIxNzI2OH0.2khRBKli-5q9WIufD9Dte3KYDTDpjcgGZbpU_jGskB0";
+const SUPABASE_URL      = 'https://czaztxqhkqwoviazqaeu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6YXp0eHFoa3F3b3ZpYXpxYWV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDEyNjgsImV4cCI6MjA4ODIxNzI2OH0.2khRBKli-5q9WIufD9Dte3KYDTDpjcgGZbpU_jGskB0';
+const MODERATOR_EMAIL   = 'cstewch@gmail.com';
+const CLOUD_NAME        = 'dqqml8dae';
+const UPLOAD_PRESET     = 'tiny-path-unsigned';
+const CHAR_LIMIT        = 300;
 
-const CLOUD_NAME    = "dqqml8dae";
-const UPLOAD_PRESET = "tiny-path-unsigned";
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
-
-/* ═══════════════════════════════════════
-   VERSION — bump before every deploy
-   Also update CACHE_VERSION in sw.js to match
-   e.g. "tinypath-v3.4" → "tinypath-v3.5"
-═══════════════════════════════════════ */
-const VERSION = "v3.5 · 2026-03-04";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ═══════════════════════════════════════
    SVG ICONS
@@ -27,533 +21,320 @@ const ICON = {
   thumbsUp:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`,
   thumbsDown: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`,
   comment:    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
-  share:      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`
+  share:      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`,
+  pencil:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
+  trash:      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`
 };
-
-/* ═══════════════════════════════════════
-   AVATAR COLOR
-═══════════════════════════════════════ */
-
-const AVATAR_COLORS = [
-  "#c0392b", "#e67e22", "#d4a017", "#27ae60",
-  "#16a085", "#2980b9", "#8e44ad", "#b7410e",
-  "#1a7a4a", "#1c5f8a", "#6c3483", "#7f8c8d"
-];
-
-function avatarColor(username) {
-  if (!username) return AVATAR_COLORS[0];
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-function avatarHTML(username, size = 40) {
-  const letter = (username || "?").charAt(0).toUpperCase();
-  const color  = avatarColor(username);
-  return `<div class="avatar" style="width:${size}px;height:${size}px;background:${color}">${esc(letter)}</div>`;
-}
-
-/* ═══════════════════════════════════════
-   SECURITY
-═══════════════════════════════════════ */
-
-function esc(str) {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function linkify(str) {
-  if (!str) return "";
-  const escaped = esc(str);
-  return escaped.replace(
-    /(https?:\/\/[^\s&]+)/g,
-    '<a class="post-link" href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
-  );
-}
-
-/* ═══════════════════════════════════════
-   IMAGE URL HELPERS
-   image_url is stored as either:
-   - a plain string (legacy single image)
-   - a JSON array string (multi-image)
-═══════════════════════════════════════ */
-
-function parseImages(image_url) {
-  if (!image_url) return [];
-  try {
-    const parsed = JSON.parse(image_url);
-    return Array.isArray(parsed) ? parsed : [image_url];
-  } catch {
-    return [image_url];
-  }
-}
-
-function buildDetailImages(post) {
-  const images = parseImages(post.image_url);
-  if (images.length === 0) return "";
-  if (images.length === 1) {
-    return `<img src="${esc(images[0])}" class="detail-image" alt="Photo by ${esc(post.username)}" />`;
-  }
-  // iMessage style: first image big, rest as small row
-  const thumbs = images.slice(1).map(url =>
-    `<img src="${esc(url)}" class="detail-thumb" loading="lazy" alt="Photo by ${esc(post.username)}" />`
-  ).join("");
-  return `
-    <img src="${esc(images[0])}" class="detail-image" />
-    <div class="detail-thumbs-row">${thumbs}</div>
-  `;
-}
-
-
-
-/* ═══════════════════════════════════════
-   DOM REFS — APP
-═══════════════════════════════════════ */
-
-const postForm        = document.getElementById("postForm");
-const textInput       = document.getElementById("textInput");
-const imageInput      = document.getElementById("imageInput");
-const charCounter     = document.getElementById("charCounter");
-const imagePreviewRow = document.getElementById("imagePreviewRow");
-const feed            = document.getElementById("feed");
-const modeButtons     = document.querySelectorAll(".mode-btn");
-const locationPreview = document.getElementById("locationPreview");
-const postingAsRow    = document.getElementById("postingAsRow");
-
-const imageModal  = document.getElementById("imageModal");
-const modalImage  = document.getElementById("modalImage");
-const closeModal  = document.getElementById("closeModal");
-
-const detailOverlay = document.getElementById("detailOverlay");
-const detailBack    = document.getElementById("detailBack");
-const detailBody    = document.getElementById("detailBody");
-const commentList   = document.getElementById("commentList");
-const commentInput  = document.getElementById("commentInput");
-const commentSubmit = document.getElementById("commentSubmit");
-
-const settingsBtn   = document.getElementById("settingsBtn");
-const settingsModal = document.getElementById("settingsModal");
-const closeSettings = document.getElementById("closeSettings");
-
-const filterBanner = document.getElementById("filterBanner");
-const filterName   = document.getElementById("filterName");
-const clearFilter  = document.getElementById("clearFilter");
-
-const profileOverlay = document.getElementById("profileOverlay");
-const profileBody    = document.getElementById("profileBody");
-const profileBack    = document.getElementById("profileBack");
-
-/* ═══════════════════════════════════════
-   DOM REFS — AUTH
-═══════════════════════════════════════ */
-
-const authOverlay     = document.getElementById("authOverlay");
-const authTitle       = document.getElementById("authTitle");
-const authEmail       = document.getElementById("authEmail");
-const authPassword    = document.getElementById("authPassword");
-const authDisplayName = document.getElementById("authDisplayName");
-const authDisplayRow  = document.getElementById("authDisplayRow");
-const authSubmitBtn   = document.getElementById("authSubmitBtn");
-const authToggleBtn   = document.getElementById("authToggleBtn");
-const authError       = document.getElementById("authError");
-const logoutBtn       = document.getElementById("logoutBtn");
-const editDisplayBtn  = document.getElementById("editDisplayBtn");
-const displayNameEdit = document.getElementById("displayNameEdit");
-const saveDisplayBtn  = document.getElementById("saveDisplayBtn");
-const displayNameErr  = document.getElementById("displayNameErr");
 
 /* ═══════════════════════════════════════
    STATE
 ═══════════════════════════════════════ */
 
-let currentMode         = "text";
-let selectedLocation    = null;
-let filterUser          = null;
-let currentDetailPostId = null;
-let unsubscribeComments = null;
-let allPosts            = [];
 let currentUser         = null;
-let feedChannel         = null;
+let currentProfile      = null;
+let allPosts            = [];
+let filterUserId        = null;
+let filterDisplayName   = null;
+let currentDetailPostId = null;
+let currentDetailPost   = null;
+let postsChannel        = null;
+let commentsChannel     = null;
+let allComments         = [];
+let appInitialized      = false;
+let currentMode         = 'text';
+let selectedLocation    = null;
 
 /* ═══════════════════════════════════════
-   AUTH HELPERS
+   DOM REFS — AUTH
 ═══════════════════════════════════════ */
 
-function getDisplayName() {
-  return currentUser?.user_metadata?.username || currentUser?.email || "You";
-}
+const authScreen        = document.getElementById('authScreen');
+const checkEmailScreen  = document.getElementById('checkEmailScreen');
+const displayNameScreen = document.getElementById('displayNameScreen');
+const appShell          = document.getElementById('appShell');
+const authForm          = document.getElementById('authForm');
+const authEmail         = document.getElementById('authEmail');
+const authPassword      = document.getElementById('authPassword');
+const authError         = document.getElementById('authError');
+const authSubmit        = document.getElementById('authSubmit');
+const sentEmailDisplay  = document.getElementById('sentEmailDisplay');
+const backToSignIn      = document.getElementById('backToSignIn');
+const displayNameForm   = document.getElementById('displayNameForm');
+const displayNameInput  = document.getElementById('displayNameInput');
 
-function showApp(user) {
-  currentUser = user;
-  authOverlay.classList.add("hidden");
-  renderPostingAsChip();
-}
+/* ═══════════════════════════════════════
+   DOM REFS — APP
+═══════════════════════════════════════ */
 
-function showAuth() {
-  currentUser = null;
-  authOverlay.classList.remove("hidden");
-  authSubmitBtn.disabled = false;
-  authEmail.value = "";
-  authPassword.value = "";
-  authDisplayName.value = "";
-  setAuthMode("login");
+const postForm          = document.getElementById('postForm');
+const textInput         = document.getElementById('textInput');
+const imageInput        = document.getElementById('imageInput');
+const charCounter       = document.getElementById('charCounter');
+const feed              = document.getElementById('feed');
+const modeButtons       = document.querySelectorAll('.mode-btn');
+const locationPreview   = document.getElementById('locationPreview');
+const filterBanner      = document.getElementById('filterBanner');
+const filterName        = document.getElementById('filterName');
+const clearFilter       = document.getElementById('clearFilter');
+const imageModal        = document.getElementById('imageModal');
+const modalImage        = document.getElementById('modalImage');
+const closeModal        = document.getElementById('closeModal');
+const detailOverlay     = document.getElementById('detailOverlay');
+const detailBack        = document.getElementById('detailBack');
+const detailBody        = document.getElementById('detailBody');
+const commentList       = document.getElementById('commentList');
+const commentInput      = document.getElementById('commentInput');
+const commentSubmit     = document.getElementById('commentSubmit');
+const settingsBtn       = document.getElementById('settingsBtn');
+const settingsModal     = document.getElementById('settingsModal');
+const closeSettings     = document.getElementById('closeSettings');
+const settingsEmail     = document.getElementById('settingsEmail');
+const settingsDisplayName = document.getElementById('settingsDisplayName');
+const saveDisplayName   = document.getElementById('saveDisplayName');
+const logoutBtn         = document.getElementById('logoutBtn');
+
+/* ═══════════════════════════════════════
+   SECURITY — HTML ESCAPE
+═══════════════════════════════════════ */
+
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /* ═══════════════════════════════════════
-   AUTH — LOGIN / SIGNUP UI
+   SCREEN MANAGEMENT
 ═══════════════════════════════════════ */
 
-let authMode = "login";
-
-function setAuthMode(mode) {
-  authMode = mode;
-  authError.textContent = "";
-  if (mode === "signup") {
-    authTitle.textContent     = "Create account";
-    authSubmitBtn.textContent = "Sign up";
-    authToggleBtn.textContent = "Already have an account? Log in";
-    authDisplayRow.classList.remove("hidden");
-  } else {
-    authTitle.textContent     = "Welcome back";
-    authSubmitBtn.textContent = "Log in";
-    authToggleBtn.textContent = "New here? Create an account";
-    authDisplayRow.classList.add("hidden");
-  }
+function showScreen(name) {
+  authScreen.classList.toggle('hidden',        name !== 'auth');
+  checkEmailScreen.classList.toggle('hidden',  name !== 'checkemail');
+  displayNameScreen.classList.toggle('hidden', name !== 'displayname');
+  appShell.classList.toggle('hidden',          name !== 'app');
 }
 
-authToggleBtn.addEventListener("click", () => {
-  setAuthMode(authMode === "login" ? "signup" : "login");
+/* ═══════════════════════════════════════
+   AUTH — SIGN IN / SIGN UP
+═══════════════════════════════════════ */
+
+let authMode = 'signin';
+
+document.querySelectorAll('.auth-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    authMode = tab.dataset.tab;
+    authSubmit.textContent = authMode === 'signin' ? 'Sign in' : 'Sign up';
+    authError.classList.add('hidden');
+    authPassword.autocomplete = authMode === 'signin' ? 'current-password' : 'new-password';
+  });
 });
 
-authSubmitBtn.addEventListener("click", async () => {
+authForm.addEventListener('submit', async e => {
+  e.preventDefault();
   const email    = authEmail.value.trim();
   const password = authPassword.value;
-  const display  = authDisplayName.value.trim();
+  if (!email || !password) return;
 
-  authError.textContent = "";
-
-  if (!email || !password) {
-    authError.textContent = "Please enter your email and password.";
-    return;
-  }
-  if (authMode === "signup" && !display) {
-    authError.textContent = "Please enter a display name.";
-    return;
-  }
-
-  authSubmitBtn.disabled    = true;
-  authSubmitBtn.textContent = authMode === "login" ? "Logging in…" : "Creating account…";
+  authSubmit.disabled    = true;
+  authSubmit.textContent = authMode === 'signin' ? 'Signing in…' : 'Creating account…';
+  authError.classList.add('hidden');
 
   try {
-    if (authMode === "signup") {
-      const { error } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { username: display } }
-      });
+    if (authMode === 'signup') {
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
+      sentEmailDisplay.textContent = email;
+      showScreen('checkemail');
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      // onAuthStateChange handles the rest
     }
-    // onAuthStateChange handles the rest
   } catch (err) {
-    authError.textContent     = err.message || "Something went wrong.";
-    authSubmitBtn.disabled    = false;
-    authSubmitBtn.textContent = authMode === "login" ? "Log in" : "Sign up";
+    authError.textContent = err.message;
+    authError.classList.remove('hidden');
+  } finally {
+    authSubmit.disabled    = false;
+    authSubmit.textContent = authMode === 'signin' ? 'Sign in' : 'Sign up';
   }
 });
 
-[authEmail, authPassword, authDisplayName].forEach(el => {
-  el.addEventListener("keydown", e => { if (e.key === "Enter") authSubmitBtn.click(); });
+backToSignIn.addEventListener('click', () => {
+  authPassword.value = '';
+  showScreen('auth');
 });
 
 /* ═══════════════════════════════════════
-   AUTH — SESSION LISTENER
+   AUTH — DISPLAY NAME SETUP
 ═══════════════════════════════════════ */
 
-supabase.auth.onAuthStateChange((_event, session) => {
-  if (session?.user) {
-    showApp(session.user);
-    loadPosts();
-    startRealtimeFeed();
-  } else {
-    showAuth();
-  }
-});
+displayNameForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = displayNameInput.value.trim();
+  if (!name) return;
 
-/* ═══════════════════════════════════════
-   POSTING-AS CHIP (read-only, auth-driven)
-═══════════════════════════════════════ */
+  const submitBtn = displayNameForm.querySelector('.auth-btn');
+  submitBtn.disabled    = true;
+  submitBtn.textContent = 'Saving…';
 
-function renderPostingAsChip() {
-  if (!postingAsRow) return;
-  const name = getDisplayName();
-  postingAsRow.innerHTML = `
-    <div class="posting-as-chip">
-      <div class="chip-avatar" style="background:${avatarColor(name)}">${esc(name.charAt(0).toUpperCase())}</div>
-      <span class="chip-name">${esc(name)}</span>
-    </div>
-  `;
-}
-
-/* ═══════════════════════════════════════
-   SETTINGS — DISPLAY NAME + LOGOUT
-═══════════════════════════════════════ */
-
-function openSettings() {
-  document.getElementById("settingsDisplayName").textContent = getDisplayName();
-  document.getElementById("settingsVersion").textContent = VERSION;
-  displayNameEdit.classList.add("hidden");
-  saveDisplayBtn.classList.add("hidden");
-  editDisplayBtn.classList.remove("hidden");
-  if (displayNameErr) displayNameErr.textContent = "";
-  settingsModal.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-}
-
-function closeSettingsModal() {
-  settingsModal.classList.add("hidden");
-  document.body.style.overflow = "";
-}
-
-settingsBtn.addEventListener("click", openSettings);
-closeSettings.addEventListener("click", closeSettingsModal);
-settingsModal.addEventListener("click", e => {
-  if (e.target === settingsModal) closeSettingsModal();
-});
-
-logoutBtn.addEventListener("click", async () => {
-  await supabase.auth.signOut();
-  closeSettingsModal();
-});
-
-editDisplayBtn.addEventListener("click", () => {
-  displayNameEdit.value = getDisplayName();
-  displayNameEdit.classList.remove("hidden");
-  saveDisplayBtn.classList.remove("hidden");
-  editDisplayBtn.classList.add("hidden");
-  if (displayNameErr) displayNameErr.textContent = "";
-  displayNameEdit.focus();
-});
-
-saveDisplayBtn.addEventListener("click", async () => {
-  const val = displayNameEdit.value.trim();
-  if (!val) { if (displayNameErr) displayNameErr.textContent = "Name can't be empty."; return; }
-
-  saveDisplayBtn.disabled    = true;
-  saveDisplayBtn.textContent = "Saving…";
-
-  const { error } = await supabase.auth.updateUser({ data: { username: val } });
+  const { error } = await supabase.from('profiles').insert({
+    id:           currentUser.id,
+    display_name: name
+  });
 
   if (error) {
-    if (displayNameErr) displayNameErr.textContent = error.message;
-  } else {
-    const { data: { user } } = await supabase.auth.getUser();
-    currentUser = user;
-    renderPostingAsChip();
-    document.getElementById("settingsDisplayName").textContent = val;
-    displayNameEdit.classList.add("hidden");
-    saveDisplayBtn.classList.add("hidden");
-    editDisplayBtn.classList.remove("hidden");
-    if (displayNameErr) displayNameErr.textContent = "";
-  }
-
-  saveDisplayBtn.disabled    = false;
-  saveDisplayBtn.textContent = "Save";
-});
-
-/* ═══════════════════════════════════════
-   PWA / SERVICE WORKER
-═══════════════════════════════════════ */
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js").catch(() => {});
-}
-
-const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
-const isStandalone = navigator.standalone === true;
-if (isIOS && !isStandalone && !sessionStorage.getItem("installShown")) {
-  sessionStorage.setItem("installShown", "1");
-  setTimeout(() => settingsModal.classList.remove("hidden"), 1800);
-}
-
-/* ═══════════════════════════════════════
-   CHARACTER COUNTER
-═══════════════════════════════════════ */
-
-const CHAR_LIMIT = 300;
-
-textInput.addEventListener("input", () => {
-  const len = textInput.value.length;
-  charCounter.textContent = `${len} / ${CHAR_LIMIT}`;
-  charCounter.classList.remove("char-near", "char-over");
-  if (len >= CHAR_LIMIT - 30) charCounter.classList.add("char-near");
-  if (len >= CHAR_LIMIT)      charCounter.classList.add("char-over");
-});
-
-/* ═══════════════════════════════════════
-   MODE SWITCHING
-═══════════════════════════════════════ */
-
-modeButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    modeButtons.forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    currentMode = btn.dataset.mode;
-    if (currentMode === "photo") { const lbl = document.getElementById("imageInputLabel"); if (lbl) lbl.click(); else imageInput.click(); }
-    if (currentMode === "location") fetchLocation();
-  });
-});
-
-/* ═══════════════════════════════════════
-   COMPOSER IMAGE PREVIEW
-═══════════════════════════════════════ */
-
-function clearImagePreview() {
-  if (imagePreviewRow) imagePreviewRow.innerHTML = "";
-}
-
-imageInput.addEventListener("change", () => {
-  if (!imagePreviewRow) return;
-  imagePreviewRow.innerHTML = "";
-  const files = Array.from(imageInput.files);
-  files.forEach(file => {
-    const url = URL.createObjectURL(file);
-    const wrap = document.createElement("div");
-    wrap.className = "preview-thumb-wrap";
-    wrap.innerHTML = `<img src="${url}" class="preview-thumb" /><button type="button" class="preview-remove">✕</button>`;
-    wrap.querySelector(".preview-remove").addEventListener("click", () => {
-      imageInput.value = "";
-      imagePreviewRow.innerHTML = "";
-    });
-    imagePreviewRow.appendChild(wrap);
-  });
-});
-
-/* ═══════════════════════════════════════
-   LOCATION
-═══════════════════════════════════════ */
-
-async function fetchLocation() {
-  if (!navigator.geolocation) { alert("Geolocation not supported."); return; }
-  navigator.geolocation.getCurrentPosition(
-    async ({ coords: { latitude: lat, longitude: lon } }) => {
-      try {
-        const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-        const data = await res.json();
-        const city  = data.address.city || data.address.town || data.address.village || "";
-        const state = data.address.state || "";
-        selectedLocation = `${city}, ${state}`;
-        locationPreview.textContent = `📍 ${selectedLocation}`;
-        locationPreview.classList.remove("hidden");
-      } catch { alert("Could not fetch location."); }
-    },
-    () => alert("Location permission denied.")
-  );
-}
-
-/* ═══════════════════════════════════════
-   POST SUBMIT
-═══════════════════════════════════════ */
-
-postForm.addEventListener("submit", async e => {
-  e.preventDefault();
-
-  const text       = textInput.value.trim();
-  const username   = getDisplayName();
-  const imageFiles = Array.from(imageInput.files);
-
-  if (!text && imageFiles.length === 0 && !selectedLocation) return;
-  if (!currentUser) { alert("Please log in first."); return; }
-
-  const submitBtn = postForm.querySelector(".post-btn");
-  submitBtn.disabled    = true;
-  submitBtn.textContent = imageFiles.length > 1 ? `Uploading 0/${imageFiles.length}…` : "Posting…";
-
-  try {
-    let image_url = null;
-
-    if (imageFiles.length > 0) {
-      // Upload all images in parallel
-      const uploads = imageFiles.map((file, i) =>
-        fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-          method: "POST",
-          body: (() => { const fd = new FormData(); fd.append("file", file); fd.append("upload_preset", UPLOAD_PRESET); return fd; })()
-        })
-        .then(r => r.json())
-        .then(d => { submitBtn.textContent = `Uploading ${i+1}/${imageFiles.length}…`; return d.secure_url; })
-      );
-      const urls = await Promise.all(uploads);
-      // Single image → plain string (backwards compat), multiple → JSON array
-      image_url = urls.length === 1 ? urls[0] : JSON.stringify(urls);
-    }
-
-    const { error } = await supabase.from("posts").insert({
-      text: text || null, username, image_url, location: selectedLocation, upvotes: 0, downvotes: 0
-    });
-    if (error) throw error;
-
-    textInput.value  = "";
-    imageInput.value = "";
-    clearImagePreview();
-    selectedLocation = null;
-    charCounter.textContent = `0 / ${CHAR_LIMIT}`;
-    charCounter.classList.remove("char-near", "char-over");
-    locationPreview.classList.add("hidden");
-    modeButtons.forEach(b => b.classList.remove("active"));
-    document.querySelector('[data-mode="text"]').classList.add("active");
-    currentMode = "text";
-
-  } catch (err) {
-    console.error("Post failed:", err);
-    alert("Something went wrong. Please try again.");
-  } finally {
+    alert('Could not save your name. Please try again.');
     submitBtn.disabled    = false;
-    submitBtn.textContent = "Post";
+    submitBtn.textContent = "Let's go →";
+    return;
+  }
+
+  currentProfile = { display_name: name };
+  initApp();
+});
+
+/* ═══════════════════════════════════════
+   AUTH STATE LISTENER
+═══════════════════════════════════════ */
+
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (!session) {
+    currentUser    = null;
+    currentProfile = null;
+    teardownApp();
+    showScreen('auth');
+    return;
+  }
+
+  // Only act on these events to avoid double-init on token refresh
+  if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN') return;
+
+  currentUser = session.user;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', currentUser.id)
+    .maybeSingle();
+
+  if (!profile) {
+    showScreen('displayname');
+  } else {
+    currentProfile = profile;
+    if (!appInitialized) initApp();
   }
 });
+
+/* ═══════════════════════════════════════
+   APP INIT / TEARDOWN
+═══════════════════════════════════════ */
+
+function initApp() {
+  appInitialized = true;
+  showScreen('app');
+
+  settingsEmail.textContent      = currentUser.email;
+  settingsDisplayName.value      = currentProfile.display_name;
+
+  subscribePostsRealtime();
+  loadPosts();
+
+  // Auto-show install prompt on iOS Safari once per session
+  const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = navigator.standalone === true;
+  if (isIOS && !isStandalone && !sessionStorage.getItem('installShown')) {
+    sessionStorage.setItem('installShown', '1');
+    setTimeout(() => settingsModal.classList.remove('hidden'), 1800);
+  }
+}
+
+function teardownApp() {
+  appInitialized = false;
+  if (postsChannel)    { supabase.removeChannel(postsChannel);    postsChannel    = null; }
+  if (commentsChannel) { supabase.removeChannel(commentsChannel); commentsChannel = null; }
+  allPosts    = [];
+  allComments = [];
+  feed.innerHTML = '';
+  closeDetail(true);
+}
+
+/* ═══════════════════════════════════════
+   POSTS — LOAD + REALTIME
+═══════════════════════════════════════ */
+
+async function loadPosts() {
+  const { data } = await supabase
+    .from('posts')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  allPosts = data || [];
+  renderFeed();
+}
+
+function subscribePostsRealtime() {
+  postsChannel = supabase
+    .channel('public:posts')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' },
+      ({ new: post }) => {
+        allPosts.unshift(post);
+        renderFeed();
+      })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'posts' },
+      ({ new: post }) => {
+        const idx = allPosts.findIndex(p => p.id === post.id);
+        if (idx !== -1) allPosts[idx] = post;
+        renderFeed();
+        if (currentDetailPostId === post.id) {
+          currentDetailPost = post;
+          renderDetailBody(post);
+        }
+      })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts' },
+      ({ old: post }) => {
+        allPosts = allPosts.filter(p => p.id !== post.id);
+        renderFeed();
+        if (currentDetailPostId === post.id) closeDetail(true);
+      })
+    .subscribe();
+}
 
 /* ═══════════════════════════════════════
    TIME HELPERS
 ═══════════════════════════════════════ */
 
-function toDate(ts) {
-  if (!ts) return null;
-  return ts instanceof Date ? ts : new Date(ts);
-}
-
-function timeAgo(ts) {
-  const d = toDate(ts);
-  if (!d) return "";
-  const s = Math.floor((Date.now() - d) / 1000);
+function timeAgo(tsStr) {
+  if (!tsStr) return '';
+  const s = Math.floor((Date.now() - new Date(tsStr)) / 1000);
   if (s < 60)    return `${s}s ago`;
   if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-function fullTimestamp(ts) {
-  const d = toDate(ts);
-  if (!d) return "";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+function fullTimestamp(tsStr) {
+  if (!tsStr) return '';
+  return new Date(tsStr).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  });
 }
 
-function dayLabel(ts) {
-  const d = toDate(ts);
-  if (!d) return "Earlier";
+function dayLabel(tsStr) {
+  if (!tsStr) return 'Earlier';
+  const d       = new Date(tsStr);
   const today   = new Date();
   today.setHours(0, 0, 0, 0);
   const postDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const diff    = Math.round((today - postDay) / 86400000);
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Yesterday";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 /* ═══════════════════════════════════════
@@ -561,46 +342,44 @@ function dayLabel(ts) {
 ═══════════════════════════════════════ */
 
 function renderFeed() {
-  feed.innerHTML = "";
-  const posts = filterUser ? allPosts.filter(p => p.username === filterUser) : allPosts;
+  feed.innerHTML = '';
+
+  const posts = filterUserId
+    ? allPosts.filter(p => p.user_id === filterUserId)
+    : allPosts;
+
   let lastLabel = null;
 
   posts.forEach(post => {
     const label = dayLabel(post.created_at);
     if (label !== lastLabel) {
-      const header = document.createElement("div");
-      header.className   = "day-header";
+      const header = document.createElement('div');
+      header.className   = 'day-header';
       header.textContent = label;
       feed.appendChild(header);
       lastLabel = label;
     }
 
-    const images      = parseImages(post.image_url);
-    const firstImg    = images[0] || null;
-    const extraCount  = images.length - 1;
     const isImageOnly = !!(post.image_url && !post.text);
+    const firstLetter = (post.display_name || '?').charAt(0).toUpperCase();
 
-    const postEl = document.createElement("div");
-    postEl.className  = `post${isImageOnly ? " post--image-only" : ""}`;
+    const postEl = document.createElement('div');
+    postEl.className  = `post${isImageOnly ? ' post--image-only' : ''}`;
     postEl.dataset.id = post.id;
 
     postEl.innerHTML = `
       <div class="post-header">
         <div class="post-user">
-          ${avatarHTML(post.username)}
+          <div class="avatar">${esc(firstLetter)}</div>
           <div>
-            <div class="username filter-link" data-user="${esc(post.username)}">${esc(post.username)}</div>
+            <div class="username filter-link" data-userid="${esc(post.user_id)}" data-name="${esc(post.display_name)}">${esc(post.display_name)}</div>
             <div class="timestamp">${timeAgo(post.created_at)}</div>
           </div>
         </div>
       </div>
-      ${post.location ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ""}
-      ${post.text     ? `<div class="text post-tap">${linkify(post.text)}</div>` : ""}
-      ${firstImg ? `
-        <div class="feed-image-wrap post-tap">
-          <img src="${esc(firstImg)}" class="post-image" loading="lazy" alt="Photo by ${esc(post.username)}" width="600" height="300" />
-          ${extraCount > 0 ? `<div class="more-images-badge">+${extraCount} more</div>` : ""}
-        </div>` : ""}
+      ${post.location  ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ''}
+      ${post.text      ? `<div class="text post-tap">${esc(post.text)}</div>` : ''}
+      ${post.image_url ? `<img src="${esc(post.image_url)}" class="post-image" loading="lazy" />` : ''}
       <div class="post-actions">
         <button class="vote-btn upvote-btn">${ICON.thumbsUp} <span class="vote-count">${post.upvotes || 0}</span></button>
         <button class="vote-btn downvote-btn">${ICON.thumbsDown} <span class="vote-count">${post.downvotes || 0}</span></button>
@@ -608,35 +387,38 @@ function renderFeed() {
       </div>
     `;
 
-    postEl.querySelectorAll(".post-tap").forEach(el => {
-      el.addEventListener("click", e => {
-        // Don't intercept clicks on actual links
-        if (e.target.closest("a")) return;
+    if (post.image_url) {
+      postEl.querySelector('.post-image').addEventListener('click', e => {
         e.stopPropagation();
-        openDetail(post.id, post);
+        modalImage.src = post.image_url;
+        imageModal.classList.remove('hidden');
+      });
+    }
+
+    postEl.querySelectorAll('.post-tap').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        openDetail(post.id);
       });
     });
 
-    postEl.querySelector(".upvote-btn").addEventListener("click", async e => {
+    postEl.querySelector('.upvote-btn').addEventListener('click', e => {
       e.stopPropagation();
       if (navigator.vibrate) navigator.vibrate(12);
-      await supabase.from("posts").update({ upvotes: (post.upvotes || 0) + 1 }).eq("id", post.id);
+      const p = allPosts.find(x => x.id === post.id);
+      if (p) supabase.from('posts').update({ upvotes: p.upvotes + 1 }).eq('id', post.id);
     });
-    postEl.querySelector(".downvote-btn").addEventListener("click", async e => {
+
+    postEl.querySelector('.downvote-btn').addEventListener('click', e => {
       e.stopPropagation();
       if (navigator.vibrate) navigator.vibrate(12);
-      await supabase.from("posts").update({ downvotes: (post.downvotes || 0) + 1 }).eq("id", post.id);
+      const p = allPosts.find(x => x.id === post.id);
+      if (p) supabase.from('posts').update({ downvotes: p.downvotes + 1 }).eq('id', post.id);
     });
 
-    postEl.querySelector(".filter-link").addEventListener("click", e => {
+    postEl.querySelector('.filter-link').addEventListener('click', e => {
       e.stopPropagation();
-      openProfile(post.username);
-    });
-
-    // Also make avatar clickable
-    postEl.querySelector(".avatar").addEventListener("click", e => {
-      e.stopPropagation();
-      openProfile(post.username);
+      setFilter(post.user_id, post.display_name);
     });
 
     feed.appendChild(postEl);
@@ -644,223 +426,195 @@ function renderFeed() {
 }
 
 /* ═══════════════════════════════════════
-   USER FILTER (kept for filter banner)
+   USER FILTER
 ═══════════════════════════════════════ */
 
-function setFilter(user) {
-  filterUser = user;
-  filterName.textContent = user;
-  filterBanner.classList.remove("hidden");
+function setFilter(userId, displayName) {
+  filterUserId      = userId;
+  filterDisplayName = displayName;
+  filterName.textContent = displayName;
+  filterBanner.classList.remove('hidden');
   renderFeed();
 }
 
-clearFilter.addEventListener("click", () => {
-  filterUser = null;
-  filterBanner.classList.add("hidden");
+clearFilter.addEventListener('click', () => {
+  filterUserId = null;
+  filterBanner.classList.add('hidden');
   renderFeed();
 });
 
 /* ═══════════════════════════════════════
-   PROFILE OVERLAY
+   POST FORM
 ═══════════════════════════════════════ */
 
-async function openProfile(username) {
-  profileOverlay.style.transform  = "";
-  profileOverlay.style.transition = "";
-  profileOverlay.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
+const CHAR_LIMIT_VAL = CHAR_LIMIT;
 
-  // Load their posts
-  const userPosts = allPosts.filter(p => p.username === username);
-  const postCount = userPosts.length;
+textInput.addEventListener('input', () => {
+  const len = textInput.value.length;
+  charCounter.textContent = `${len} / ${CHAR_LIMIT_VAL}`;
+  charCounter.classList.remove('char-near', 'char-over');
+  if (len >= CHAR_LIMIT_VAL - 30) charCounter.classList.add('char-near');
+  if (len >= CHAR_LIMIT_VAL)      charCounter.classList.add('char-over');
+});
 
-  // Get member since from earliest post (best we can do without user table)
-  const earliest  = userPosts.length
-    ? userPosts.reduce((a, b) => new Date(a.created_at) < new Date(b.created_at) ? a : b)
-    : null;
-  const memberSince = earliest
-    ? new Date(earliest.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
-    : "—";
+modeButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    modeButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    if (currentMode === 'photo')    imageInput.click();
+    if (currentMode === 'location') fetchLocation();
+  });
+});
 
-  const isOwnProfile = username === getDisplayName();
-  const bio = isOwnProfile
-    ? (currentUser?.user_metadata?.bio || "")
-    : ""; // bio only available for own profile via auth metadata
+postForm.addEventListener('submit', async e => {
+  e.preventDefault();
 
-  const color  = avatarColor(username);
-  const letter = (username || "?").charAt(0).toUpperCase();
+  const text      = textInput.value.trim();
+  const imageFile = imageInput.files[0];
 
-  profileBody.innerHTML = `
-    <div class="profile-hero">
-      <div class="profile-avatar" style="background:${color}">${esc(letter)}</div>
-      <div class="profile-name">${esc(username)}</div>
-      <div class="profile-meta">
-        <span class="profile-stat"><strong>${postCount}</strong> posts</span>
-        <span class="profile-meta-sep">·</span>
-        <span class="profile-stat">Since ${esc(memberSince)}</span>
-      </div>
-      <div class="profile-bio" id="profileBioText">${esc(bio) || (isOwnProfile ? '<span class="profile-bio-empty">Add a bio…</span>' : "")}</div>
-      ${isOwnProfile ? `
-        <div class="profile-edit-row" id="profileEditRow">
-          <textarea id="profileBioInput" class="profile-bio-input hidden" placeholder="Write a short bio…" maxlength="160">${esc(bio)}</textarea>
-          <button id="profileBioEditBtn" class="profile-edit-btn">Edit bio</button>
-          <button id="profileBioSaveBtn" class="profile-save-btn hidden">Save</button>
-        </div>` : ""}
-    </div>
-    <div class="profile-posts-label">Posts</div>
-    <div id="profilePostsFeed" class="profile-posts-feed"></div>
-  `;
+  if (!text && !imageFile && !selectedLocation) return;
 
-  // Render their posts as mini cards
-  const profileFeed = profileBody.querySelector("#profilePostsFeed");
-  if (userPosts.length === 0) {
-    profileFeed.innerHTML = '<p class="no-comments" style="padding:20px">No posts yet.</p>';
-  } else {
-    userPosts.forEach(post => {
-      const images   = parseImages(post.image_url);
-      const firstImg = images[0] || null;
-      const card = document.createElement("div");
-      card.className = "profile-post-card";
-      card.innerHTML = `
-        ${firstImg ? `<img src="${esc(firstImg)}" class="profile-post-thumb" loading="lazy" alt="Photo by ${esc(post.username)}" width="60" height="60" />` : ""}
-        <div class="profile-post-content">
-          ${post.text ? `<div class="profile-post-text">${linkify(post.text)}</div>` : ""}
-          <div class="profile-post-time">${timeAgo(post.created_at)}</div>
-        </div>
-      `;
-      card.addEventListener("click", () => openDetail(post.id, post));
-      profileFeed.appendChild(card);
+  const submitBtn = postForm.querySelector('.post-btn');
+  submitBtn.disabled    = true;
+  submitBtn.textContent = 'Posting…';
+
+  try {
+    let image_url = null;
+    if (imageFile) {
+      const formData = new FormData();
+      formData.append('file', imageFile);
+      formData.append('upload_preset', UPLOAD_PRESET);
+      const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+        method: 'POST', body: formData
+      });
+      const data = await res.json();
+      image_url  = data.secure_url;
+    }
+
+    await supabase.from('posts').insert({
+      user_id:      currentUser.id,
+      display_name: currentProfile.display_name,
+      text:         text || null,
+      image_url,
+      location:     selectedLocation
     });
+
+    textInput.value  = '';
+    imageInput.value = '';
+    selectedLocation = null;
+    charCounter.textContent = `0 / ${CHAR_LIMIT_VAL}`;
+    charCounter.classList.remove('char-near', 'char-over');
+    locationPreview.classList.add('hidden');
+    modeButtons.forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-mode="text"]').classList.add('active');
+    currentMode = 'text';
+  } finally {
+    submitBtn.disabled    = false;
+    submitBtn.textContent = 'Post';
   }
+});
 
-  // Bio edit (own profile only)
-  if (isOwnProfile) {
-    const bioEditBtn = profileBody.querySelector("#profileBioEditBtn");
-    const bioSaveBtn = profileBody.querySelector("#profileBioSaveBtn");
-    const bioInput   = profileBody.querySelector("#profileBioInput");
-    const bioText    = profileBody.querySelector("#profileBioText");
+/* ═══════════════════════════════════════
+   LOCATION
+═══════════════════════════════════════ */
 
-    bioEditBtn?.addEventListener("click", () => {
-      bioInput.classList.remove("hidden");
-      bioSaveBtn.classList.remove("hidden");
-      bioEditBtn.classList.add("hidden");
-      bioInput.focus();
-    });
-
-    bioSaveBtn?.addEventListener("click", async () => {
-      const val = bioInput.value.trim();
-      bioSaveBtn.disabled    = true;
-      bioSaveBtn.textContent = "Saving…";
-      const { error } = await supabase.auth.updateUser({ data: { bio: val } });
-      if (!error) {
-        const { data: { user } } = await supabase.auth.getUser();
-        currentUser = user;
-        bioText.textContent = val || "";
-        bioInput.classList.add("hidden");
-        bioSaveBtn.classList.add("hidden");
-        bioEditBtn.classList.remove("hidden");
+async function fetchLocation() {
+  if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
+  navigator.geolocation.getCurrentPosition(
+    async ({ coords: { latitude: lat, longitude: lon } }) => {
+      try {
+        const res  = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+        );
+        const data = await res.json();
+        const city  = data.address.city || data.address.town || data.address.village || '';
+        const state = data.address.state || '';
+        selectedLocation = `${city}, ${state}`;
+        locationPreview.textContent = `📍 ${selectedLocation}`;
+        locationPreview.classList.remove('hidden');
+      } catch {
+        alert('Could not fetch location.');
       }
-      bioSaveBtn.disabled    = false;
-      bioSaveBtn.textContent = "Save";
-    });
-  }
+    },
+    () => alert('Location permission denied.')
+  );
 }
 
-function closeProfile(skipAnimation = false) {
+/* ═══════════════════════════════════════
+   POST DETAIL — OPEN / CLOSE
+═══════════════════════════════════════ */
+
+function openDetail(postId) {
+  const post = allPosts.find(p => p.id === postId);
+  if (!post) return;
+
+  currentDetailPostId = postId;
+  currentDetailPost   = post;
+
+  detailOverlay.style.transform  = '';
+  detailOverlay.style.transition = '';
+
+  renderDetailBody(post);
+  loadComments(postId);
+  subscribeCommentsRealtime(postId);
+
+  detailOverlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail(skipAnimation = false) {
   function finish() {
-    profileOverlay.classList.add("hidden");
-    profileOverlay.style.transform  = "";
-    profileOverlay.style.transition = "";
-    document.body.style.overflow    = "";
+    detailOverlay.classList.add('hidden');
+    detailOverlay.style.transform  = '';
+    detailOverlay.style.transition = '';
+    document.body.style.overflow   = '';
+    unsubscribeComments();
+    currentDetailPostId = null;
+    currentDetailPost   = null;
+    commentInput.value  = '';
   }
+
   if (skipAnimation) { finish(); return; }
-  profileOverlay.style.transition = "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)";
-  profileOverlay.style.transform  = "translateX(100%)";
+
+  detailOverlay.style.transition = 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
+  detailOverlay.style.transform  = 'translateX(100%)';
   setTimeout(finish, 280);
 }
 
-profileBack.addEventListener("click", () => closeProfile());
-
-// Swipe right to close profile (same as detail)
-let profileSwipeStartX = 0, profileSwipeStartY = 0, profileSwiping = false, profileSwipeDecided = false;
-
-profileOverlay.addEventListener("touchstart", e => {
-  profileSwipeStartX = e.touches[0].clientX;
-  profileSwipeStartY = e.touches[0].clientY;
-  profileSwiping = false; profileSwipeDecided = false;
-  profileOverlay.style.transition = "none";
-}, { passive: true });
-
-profileOverlay.addEventListener("touchmove", e => {
-  const dx = e.touches[0].clientX - profileSwipeStartX;
-  const dy = e.touches[0].clientY - profileSwipeStartY;
-  if (!profileSwipeDecided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
-    profileSwipeDecided = true;
-    profileSwiping = dx > 0 && Math.abs(dx) > Math.abs(dy);
-  }
-  if (!profileSwiping) return;
-  e.preventDefault();
-  profileOverlay.style.transform = `translateX(${Math.max(0, dx)}px)`;
-}, { passive: false });
-
-profileOverlay.addEventListener("touchend", e => {
-  if (!profileSwipeDecided) return;
-  const dx = e.changedTouches[0].clientX - profileSwipeStartX;
-  const wasSwipe = profileSwiping;
-  profileSwiping = false; profileSwipeDecided = false;
-  if (!wasSwipe) { profileOverlay.style.transition = ""; return; }
-  profileOverlay.style.transition = "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)";
-  if (dx > 80) {
-    profileOverlay.style.transform = "translateX(110%)";
-    setTimeout(() => closeProfile(true), 260);
-  } else {
-    profileOverlay.style.transform = "";
-    setTimeout(() => { profileOverlay.style.transition = ""; }, 300);
-  }
-}, { passive: true });
+detailBack.addEventListener('click', () => closeDetail());
 
 /* ═══════════════════════════════════════
-   REALTIME FEED
+   POST DETAIL — RENDER BODY
 ═══════════════════════════════════════ */
 
-async function loadPosts() {
-  const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
-  if (error) { console.error("Failed to load posts:", error); return; }
-  allPosts = data || [];
-  renderFeed();
-}
+function renderDetailBody(post) {
+  const isOwner  = currentUser && post.user_id === currentUser.id;
+  const isMod    = currentUser && currentUser.email === MODERATOR_EMAIL;
+  const canEdit   = isOwner;
+  const canDelete = isOwner || isMod;
 
-function startRealtimeFeed() {
-  if (feedChannel) return;
-  feedChannel = supabase
-    .channel("posts-channel")
-    .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => loadPosts())
-    .subscribe();
-}
-
-/* ═══════════════════════════════════════
-   POST DETAIL VIEW
-═══════════════════════════════════════ */
-
-function openDetail(postId, post) {
-  currentDetailPostId = postId;
-  detailOverlay.style.transform  = "";
-  detailOverlay.style.transition = "";
+  const firstLetter = (post.display_name || '?').charAt(0).toUpperCase();
+  const editedLabel = post.edited_at ? '<span class="edited-label">· edited</span>' : '';
 
   detailBody.innerHTML = `
     <div class="detail-post">
       <div class="post-header">
         <div class="post-user">
-          ${avatarHTML(post.username)}
+          <div class="avatar">${esc(firstLetter)}</div>
           <div>
-            <div class="username profile-link" style="cursor:pointer">${esc(post.username)}</div>
-            <div class="timestamp">${fullTimestamp(post.created_at)}</div>
+            <div class="username">${esc(post.display_name)}</div>
+            <div class="timestamp">${fullTimestamp(post.created_at)} ${editedLabel}</div>
           </div>
         </div>
+        <div class="post-owner-actions">
+          ${canEdit   ? `<button class="owner-btn edit-btn"   aria-label="Edit">${ICON.pencil}</button>`  : ''}
+          ${canDelete ? `<button class="owner-btn delete-btn" aria-label="Delete">${ICON.trash}</button>` : ''}
+        </div>
       </div>
-      ${post.location  ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ""}
-      ${post.text      ? `<div class="text">${linkify(post.text)}</div>` : ""}
-      ${buildDetailImages(post)}
+      ${post.location  ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ''}
+      ${post.text      ? `<div class="text">${esc(post.text)}</div>` : ''}
+      ${post.image_url ? `<img src="${esc(post.image_url)}" class="detail-image" />` : ''}
       <div class="detail-votes">
         <button class="vote-btn detail-upvote">${ICON.thumbsUp} <span>${post.upvotes || 0}</span></button>
         <button class="vote-btn detail-downvote">${ICON.thumbsDown} <span>${post.downvotes || 0}</span></button>
@@ -869,95 +623,193 @@ function openDetail(postId, post) {
     </div>
   `;
 
-  detailBody.querySelector(".detail-upvote").addEventListener("click", async () => {
+  if (canEdit) {
+    detailBody.querySelector('.edit-btn').addEventListener('click', () => renderDetailBodyEdit(post));
+  }
+  if (canDelete) {
+    detailBody.querySelector('.delete-btn').addEventListener('click', () => deletePost(post.id));
+  }
+
+  detailBody.querySelector('.detail-upvote').addEventListener('click', () => {
     if (navigator.vibrate) navigator.vibrate(12);
-    await supabase.from("posts").update({ upvotes: (post.upvotes || 0) + 1 }).eq("id", postId);
+    const p = allPosts.find(x => x.id === post.id);
+    if (p) supabase.from('posts').update({ upvotes: p.upvotes + 1 }).eq('id', post.id);
   });
-  detailBody.querySelector(".detail-downvote").addEventListener("click", async () => {
+  detailBody.querySelector('.detail-downvote').addEventListener('click', () => {
     if (navigator.vibrate) navigator.vibrate(12);
-    await supabase.from("posts").update({ downvotes: (post.downvotes || 0) + 1 }).eq("id", postId);
+    const p = allPosts.find(x => x.id === post.id);
+    if (p) supabase.from('posts').update({ downvotes: p.downvotes + 1 }).eq('id', post.id);
   });
 
-  const shareBtn = detailBody.querySelector(".share-btn");
+  const shareBtn = detailBody.querySelector('.share-btn');
   if (navigator.share) {
-    shareBtn.addEventListener("click", async () => {
-      try { await navigator.share({ title: `${post.username} on Path`, text: post.text || "Check this out on Path", url: window.location.href }); } catch {}
+    shareBtn.addEventListener('click', async () => {
+      try {
+        await navigator.share({
+          title: `${post.display_name} on Path`,
+          text:  post.text || 'Check this out on Path',
+          url:   window.location.href
+        });
+      } catch {}
     });
   } else {
-    shareBtn.style.display = "none";
+    shareBtn.style.display = 'none';
   }
 
-  // Username/avatar in detail → profile
-  const profileLinkEl = detailBody.querySelector(".profile-link");
-  if (profileLinkEl) {
-    profileLinkEl.addEventListener("click", () => openProfile(post.username));
-  }
-  const detailAvatarEl = detailBody.querySelector(".avatar");
-  if (detailAvatarEl) {
-    detailAvatarEl.style.cursor = "pointer";
-    detailAvatarEl.addEventListener("click", () => openProfile(post.username));
-  }
-
-  // Wire up all tappable images in detail view → fullscreen modal
-  detailBody.querySelectorAll(".detail-image, .detail-thumb").forEach(img => {
-    img.addEventListener("click", () => {
-      openModal(img.src, post.username);
+  if (post.image_url) {
+    detailBody.querySelector('.detail-image').addEventListener('click', () => {
+      modalImage.src = post.image_url;
+      imageModal.classList.remove('hidden');
     });
-  });
-
-  commentList.innerHTML = '<p class="no-comments">Loading…</p>';
-  loadComments(postId);
-
-  unsubscribeComments = supabase
-    .channel(`comments-${postId}`)
-    .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` }, () => loadComments(postId))
-    .subscribe();
-
-  detailOverlay.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
+  }
 }
 
-async function loadComments(postId) {
-  const { data, error } = await supabase
-    .from("comments").select("*").eq("post_id", postId).order("created_at", { ascending: true });
-  if (error) { console.error("Failed to load comments:", error); return; }
+/* ═══════════════════════════════════════
+   POST DETAIL — EDIT
+═══════════════════════════════════════ */
 
-  commentList.innerHTML = "";
-  if (!data || data.length === 0) {
+function renderDetailBodyEdit(post) {
+  const firstLetter = (post.display_name || '?').charAt(0).toUpperCase();
+
+  detailBody.innerHTML = `
+    <div class="detail-post">
+      <div class="post-header">
+        <div class="post-user">
+          <div class="avatar">${esc(firstLetter)}</div>
+          <div>
+            <div class="username">${esc(post.display_name)}</div>
+            <div class="timestamp">${fullTimestamp(post.created_at)}</div>
+          </div>
+        </div>
+      </div>
+      ${post.location ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ''}
+      <textarea id="editTextarea" class="edit-textarea">${esc(post.text || '')}</textarea>
+      <div class="edit-actions">
+        <button id="cancelEdit" class="cancel-edit-btn">Cancel</button>
+        <button id="saveEdit"   class="save-edit-btn">Save</button>
+      </div>
+      ${post.image_url ? `<img src="${esc(post.image_url)}" class="detail-image" />` : ''}
+    </div>
+  `;
+
+  const textarea  = document.getElementById('editTextarea');
+  const saveBtn   = document.getElementById('saveEdit');
+  const cancelBtn = document.getElementById('cancelEdit');
+
+  textarea.focus();
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+  cancelBtn.addEventListener('click', () => renderDetailBody(post));
+
+  saveBtn.addEventListener('click', async () => {
+    const newText = textarea.value.trim();
+    if (!newText) return;
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Saving…';
+
+    const { error } = await supabase
+      .from('posts')
+      .update({ text: newText, edited_at: new Date().toISOString() })
+      .eq('id', post.id);
+
+    if (error) {
+      saveBtn.disabled    = false;
+      saveBtn.textContent = 'Save';
+      alert('Could not save. Try again.');
+    }
+    // Realtime UPDATE fires → renderDetailBody(updatedPost) called automatically
+  });
+
+  if (post.image_url) {
+    detailBody.querySelector('.detail-image').addEventListener('click', () => {
+      modalImage.src = post.image_url;
+      imageModal.classList.remove('hidden');
+    });
+  }
+}
+
+/* ═══════════════════════════════════════
+   POST DELETE
+═══════════════════════════════════════ */
+
+async function deletePost(postId) {
+  if (!confirm('Delete this post? This cannot be undone.')) return;
+  await supabase.from('posts').delete().eq('id', postId);
+  // Realtime DELETE fires → post removed from feed, detail closed
+}
+
+/* ═══════════════════════════════════════
+   COMMENTS — LOAD + REALTIME
+═══════════════════════════════════════ */
+
+async function loadComments(postId) {
+  commentList.innerHTML = '<p class="no-comments">Loading…</p>';
+  const { data } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('post_id', postId)
+    .order('created_at', { ascending: true });
+
+  allComments = data || [];
+  renderComments();
+}
+
+function subscribeCommentsRealtime(postId) {
+  commentsChannel = supabase
+    .channel(`comments:${postId}`)
+    .on('postgres_changes', {
+      event:  'INSERT',
+      schema: 'public',
+      table:  'comments',
+      filter: `post_id=eq.${postId}`
+    }, ({ new: comment }) => {
+      if (!allComments.find(c => c.id === comment.id)) {
+        allComments.push(comment);
+        renderComments();
+      }
+    })
+    .subscribe();
+}
+
+function unsubscribeComments() {
+  if (commentsChannel) {
+    supabase.removeChannel(commentsChannel);
+    commentsChannel = null;
+  }
+  allComments = [];
+}
+
+function renderComments() {
+  commentList.innerHTML = '';
+  if (allComments.length === 0) {
     commentList.innerHTML = '<p class="no-comments">No comments yet — say something!</p>';
     return;
   }
-  data.forEach(c => {
-    const el = document.createElement("div");
-    el.className = "comment";
-    el.innerHTML = `
-      <div class="comment-avatar" style="background:${avatarColor(c.username)}">${esc((c.username || "?").charAt(0).toUpperCase())}</div>
-      <div class="comment-content">
-        <span class="comment-user">${esc(c.username)}</span><span class="comment-text">${esc(c.text)}</span>
-      </div>
-    `;
+  allComments.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'comment';
+    el.innerHTML = `<span class="comment-user">${esc(c.display_name)}</span><span class="comment-text">${esc(c.text)}</span>`;
     commentList.appendChild(el);
   });
   commentList.scrollTop = commentList.scrollHeight;
 }
 
-function closeDetail(skipAnimation = false) {
-  function finish() {
-    detailOverlay.classList.add("hidden");
-    detailOverlay.style.transform  = "";
-    detailOverlay.style.transition = "";
-    document.body.style.overflow   = "";
-    if (unsubscribeComments) { supabase.removeChannel(unsubscribeComments); unsubscribeComments = null; }
-    currentDetailPostId = null;
-    commentInput.value  = "";
-  }
-  if (skipAnimation) { finish(); return; }
-  detailOverlay.style.transition = "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)";
-  detailOverlay.style.transform  = "translateX(100%)";
-  setTimeout(finish, 280);
+async function submitComment() {
+  const text = commentInput.value.trim();
+  if (!text || !currentDetailPostId) return;
+  commentInput.value = '';
+  await supabase.from('comments').insert({
+    post_id:      currentDetailPostId,
+    user_id:      currentUser.id,
+    display_name: currentProfile.display_name,
+    text
+  });
 }
 
-detailBack.addEventListener("click", () => closeDetail());
+commentSubmit.addEventListener('click', submitComment);
+commentInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitComment();
+});
 
 /* ═══════════════════════════════════════
    SWIPE RIGHT TO CLOSE DETAIL
@@ -968,71 +820,114 @@ let swipeStartY  = 0;
 let isSwiping    = false;
 let swipeDecided = false;
 
-detailOverlay.addEventListener("touchstart", e => {
+detailOverlay.addEventListener('touchstart', e => {
   swipeStartX  = e.touches[0].clientX;
   swipeStartY  = e.touches[0].clientY;
   isSwiping    = false;
   swipeDecided = false;
-  detailOverlay.style.transition = "none";
+  detailOverlay.style.transition = 'none';
 }, { passive: true });
 
-detailOverlay.addEventListener("touchmove", e => {
+detailOverlay.addEventListener('touchmove', e => {
   const dx = e.touches[0].clientX - swipeStartX;
   const dy = e.touches[0].clientY - swipeStartY;
+
   if (!swipeDecided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
     swipeDecided = true;
     isSwiping    = dx > 0 && Math.abs(dx) > Math.abs(dy);
   }
+
   if (!isSwiping) return;
   e.preventDefault();
   detailOverlay.style.transform = `translateX(${Math.max(0, dx)}px)`;
 }, { passive: false });
 
-detailOverlay.addEventListener("touchend", e => {
+detailOverlay.addEventListener('touchend', e => {
   if (!swipeDecided) return;
-  const dx = e.changedTouches[0].clientX - swipeStartX;
+  const dx       = e.changedTouches[0].clientX - swipeStartX;
   const wasSwipe = isSwiping;
-  swipeDecided = false;
-  isSwiping    = false;
-  if (!wasSwipe) { detailOverlay.style.transition = ""; return; }
-  detailOverlay.style.transition = "transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)";
+  swipeDecided   = false;
+  isSwiping      = false;
+
+  if (!wasSwipe) { detailOverlay.style.transition = ''; return; }
+
+  detailOverlay.style.transition = 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
   if (dx > 80) {
-    detailOverlay.style.transform = "translateX(110%)";
+    detailOverlay.style.transform = 'translateX(110%)';
     setTimeout(() => closeDetail(true), 260);
   } else {
-    detailOverlay.style.transform = "";
-    setTimeout(() => { detailOverlay.style.transition = ""; }, 300);
+    detailOverlay.style.transform = '';
+    setTimeout(() => { detailOverlay.style.transition = ''; }, 300);
   }
 }, { passive: true });
 
 /* ═══════════════════════════════════════
-   COMMENT SUBMIT
+   SETTINGS
 ═══════════════════════════════════════ */
 
-async function submitComment() {
-  const text     = commentInput.value.trim();
-  const username = getDisplayName();
-  if (!text || !currentUser || !currentDetailPostId) return;
-  commentInput.value = "";
-  const { error } = await supabase.from("comments").insert({ post_id: currentDetailPostId, text, username });
-  if (error) console.error("Comment failed:", error);
-}
+settingsBtn.addEventListener('click', () => {
+  settingsDisplayName.value = currentProfile?.display_name || '';
+  settingsModal.classList.remove('hidden');
+});
+closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+settingsModal.addEventListener('click', e => {
+  if (e.target === settingsModal) settingsModal.classList.add('hidden');
+});
 
-commentSubmit.addEventListener("click", submitComment);
-commentInput.addEventListener("keydown", e => { if (e.key === "Enter") submitComment(); });
+saveDisplayName.addEventListener('click', async () => {
+  const newName = settingsDisplayName.value.trim();
+  if (!newName || newName === currentProfile.display_name) return;
 
-// Prevent iOS zoom on input focus via font-size (handled in CSS)
+  saveDisplayName.disabled    = true;
+  saveDisplayName.textContent = 'Saving…';
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: newName })
+    .eq('id', currentUser.id);
+
+  saveDisplayName.disabled    = false;
+  saveDisplayName.textContent = error ? 'Save' : 'Saved ✓';
+  if (!error) {
+    currentProfile.display_name = newName;
+    setTimeout(() => { saveDisplayName.textContent = 'Save'; }, 2000);
+  }
+});
+
+logoutBtn.addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  // onAuthStateChange handles teardown + screen switch
+});
 
 /* ═══════════════════════════════════════
    IMAGE MODAL
 ═══════════════════════════════════════ */
 
-closeModal.addEventListener("click", () => imageModal.classList.add("hidden"));
-imageModal.addEventListener("click", e => { if (e.target === imageModal) imageModal.classList.add("hidden"); });
+closeModal.addEventListener('click', () => imageModal.classList.add('hidden'));
+imageModal.addEventListener('click', e => {
+  if (e.target === imageModal) imageModal.classList.add('hidden');
+});
 
-// Set meaningful alt when opening modal
-function openModal(src, username) {
-  modalImage.src = src;
-  modalImage.alt = username ? `Photo by ${username}` : "Full size photo";
-  imageModal.classList.remove("hidden");
+/* ═══════════════════════════════════════
+   iOS SAFARI — PREVENT INPUT ZOOM
+═══════════════════════════════════════ */
+
+const viewportMeta = document.querySelector('meta[name=viewport]');
+const baseViewport = viewportMeta.content;
+
+[commentInput, settingsDisplayName].forEach(input => {
+  input.addEventListener('focus', () => {
+    viewportMeta.content = baseViewport + ', maximum-scale=1';
+  });
+  input.addEventListener('blur', () => {
+    viewportMeta.content = baseViewport;
+  });
+});
+
+/* ═══════════════════════════════════════
+   SERVICE WORKER
+═══════════════════════════════════════ */
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
