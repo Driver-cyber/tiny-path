@@ -12,7 +12,7 @@
 
 **Vibe:** "Warm & Considered." Utility first, beauty close behind. Ship, learn, iterate.
 
-**Current Version:** v4.0 · 2026-03-27
+**Current Version:** v4.2 · 2026-03-28
 
 | App | URL | Backend |
 |---|---|---|
@@ -151,6 +151,15 @@ tiny-path/                  ← repo root
 - Location mode auto-fetches via Nominatim on open
 - Detail view hides FAB while open; FAB restored on close
 
+### [2026-03-27] — Password Reset Flow (v4.1)
+- Added "Forgot password?" link on sign-in screen (subtle, below submit button)
+- Forgot password screen: email input → `supabase.auth.resetPasswordForEmail()` with `redirectTo: tiny-path.pages.dev`
+- Success state shown inline on same card (no extra screen)
+- Set new password screen: shown when user returns via reset link (`PASSWORD_RECOVERY` auth event)
+- Fixed race condition: Supabase fires `SIGNED_IN` immediately after `PASSWORD_RECOVERY`, which was skipping the set-password screen. Fixed with `inPasswordRecovery` flag that blocks `SIGNED_IN` handler until password is submitted
+- Friendly error message for Supabase's built-in email rate limit
+- **Pending:** Custom SMTP via Resend to eliminate rate limits (see Next Session)
+
 ### [2026-03-27] — FAB to Bottom-Right + Fan Direction (v3.2)
 - Moved FAB anchor to bottom-right corner (was centered)
 - Radial buttons now fan toward upper-left — the axis from the FAB corner toward screen center
@@ -195,8 +204,23 @@ These were discussed and ranked by the user. Build in this order:
 - ✅ Emoji reactions + picker (v4.0)
 - ✅ Reaction breakdown / "see who reacted" (v4.0)
 - ✅ Scroll lock on all modals (v4.0)
+- ✅ Password reset flow (v4.1)
 
-**Next features to consider:**
+### [2026-03-28] — Profile overlays, native emoji keyboard, vote fixes (v4.2)
+- **Profile overlay** — tapping any username/avatar opens a full-screen profile view (slides from right, swipe to close). Shows cover photo, big avatar, bio, post count, and scrollable post list. Tapping a post opens detail view.
+- **Profile editing** — own profile: tap cover photo area to change (Cloudinary upload), tap bio text to edit inline. Settings gains "Edit profile" button that opens own profile.
+- **DB change:** `ALTER TABLE profiles ADD COLUMN bio text; ALTER TABLE profiles ADD COLUMN cover_photo_url text;`
+- **Native emoji keyboard** — replaced 16-emoji custom picker with a floating input bubble. User types/pastes any emoji; Intl.Segmenter extracts the first grapheme cluster and adds it as a reaction. Full access to all Apple/Android emoji.
+- **Line-art emoji trigger icon** — replaced the 😊 emoji literal with an SVG smiley face outline (consistent with the other action icons).
+- **Vote/reaction error handling** — `castVote` and `toggleReaction` now surface errors via a toast notification instead of silently failing.
+- **Version bump:** `tinypath-v4.2` in sw.js
+
+**Next session — do these first (blockers for sharing with users):**
+1. **Set up Resend SMTP** — connect custom domain email to Supabase so auth emails don't hit rate limits. Steps: sign up at resend.com → add domain → get DNS records → verify → create API key → Supabase Auth → SMTP Settings (host: smtp.resend.com, port: 465, user: resend, password: API key)
+2. **Set Supabase Auth redirect URL** — Supabase → Auth → URL Configuration → Site URL + Redirect URLs → `https://tiny-path.pages.dev`
+3. **Merge dev → main** — triggers production deploy on Cloudflare Pages
+
+**Next features to consider (after launch):**
 - Notification / unread indicator for new posts
 - Family Path Supabase migration
 - Multi-photo upload

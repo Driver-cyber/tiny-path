@@ -438,15 +438,18 @@ body {
   background: #f7f4f2;
   border: 1px solid #ece8e5;
   border-radius: 20px;
-  padding: 5px 10px;
-  font-size: 15px;
-  line-height: 1;
+  padding: 6px 10px;
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
   -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
 }
 
+.emoji-trigger-btn svg { width: 15px; height: 15px; }
 .emoji-trigger-btn:hover  { background: #eee9e5; }
 .emoji-trigger-btn:active { transform: scale(0.92); }
 
@@ -500,45 +503,51 @@ body {
 .comment-hint:hover { color: #c0392b; }
 
 /* =========================
-   EMOJI PICKER
+   EMOJI INPUT BUBBLE (NATIVE KEYBOARD)
 ========================= */
 
-.emoji-picker {
+.emoji-input-bubble {
   position: fixed;
   top: -9999px;
   left: -9999px;
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
-  padding: 10px;
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 2px;
+  padding: 12px 14px 14px;
   z-index: 9000;
   visibility: hidden;
+  min-width: 180px;
 }
 
-.emoji-picker.positioned {
+.emoji-input-bubble.positioned {
   visibility: visible;
   animation: fadeSlideIn 0.15s ease;
 }
 
-.emoji-option {
-  background: none;
-  border: none;
-  padding: 6px 4px;
-  font-size: 20px;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: background 0.1s, transform 0.1s;
-  -webkit-tap-highlight-color: transparent;
-  line-height: 1;
+.emoji-input-hint {
+  display: block;
+  font-size: 11px;
+  color: #aaa;
+  font-family: 'Inter', sans-serif;
+  margin-bottom: 8px;
   text-align: center;
 }
 
-.emoji-option:hover  { background: #f4f1ee; }
-.emoji-option:active { transform: scale(0.88); }
-.emoji-option.emoji-selected { background: #fef0f0; }
+.emoji-input-field {
+  width: 100%;
+  border: 1.5px solid #ece8e5;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 24px;
+  text-align: center;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+  background: #fafafa;
+  display: block;
+  line-height: 1.2;
+}
+
+.emoji-input-field:focus { border-color: #c0392b; background: #fff; }
 
 /* =========================
    FAB — BACKDROP
@@ -1220,6 +1229,23 @@ body {
 .save-name-btn:hover    { background: #a93226; }
 .save-name-btn:disabled { opacity: 0.6; cursor: default; }
 
+.edit-profile-btn {
+  width: 100%;
+  padding: 10px;
+  background: #f4f1ee;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #c0392b;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-bottom: 10px;
+}
+
+.edit-profile-btn:hover { background: #ede8e4; }
+
 .logout-btn {
   width: 100%;
   padding: 10px;
@@ -1351,3 +1377,280 @@ body {
 ========================= */
 
 .hidden { display: none !important; }
+
+/* =========================
+   PROFILE OVERLAY
+========================= */
+
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  background: #f4f1ee;
+  z-index: 510;
+  display: flex;
+  flex-direction: column;
+  animation: slideInFromRight 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  overflow: hidden;
+}
+
+.profile-overlay.hidden { display: none !important; }
+
+.profile-overlay-header {
+  background: linear-gradient(180deg, #c0392b, #a93226);
+  padding: 14px 16px;
+  padding-top: max(14px, env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.profile-edit-header-btn {
+  margin-left: auto;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.profile-edit-header-btn svg { width: 16px; height: 16px; }
+.profile-edit-header-btn:hover { background: rgba(255,255,255,0.25); }
+
+.profile-overlay-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Cover photo area */
+.profile-cover-area {
+  position: relative;
+  height: 140px;
+  background: linear-gradient(135deg, #c0392b 0%, #8e1a10 100%);
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.profile-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #c0392b 0%, #8e1a10 100%);
+}
+
+.profile-cover-change {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.5);
+  color: white;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 2;
+}
+
+.profile-cover-change svg { width: 14px; height: 14px; flex-shrink: 0; }
+.profile-cover-change:hover { background: rgba(0,0,0,0.7); }
+
+/* Big avatar */
+.profile-avatar-big {
+  position: absolute;
+  bottom: -28px;
+  left: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #e8e0da;
+  border: 3px solid #f4f1ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 22px;
+  color: #c0392b;
+  z-index: 3;
+}
+
+/* Profile info section */
+.profile-info {
+  background: #fff;
+  padding: 40px 20px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.profile-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 6px;
+}
+
+.profile-bio {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  cursor: pointer;
+  min-height: 20px;
+  border-radius: 8px;
+  padding: 2px 4px;
+  margin-left: -4px;
+  transition: background 0.15s;
+}
+
+.profile-bio:hover { background: #f8f6f4; }
+.profile-bio-empty { color: #bbb; font-style: italic; }
+
+.profile-bio-edit {
+  width: 100%;
+  border: 1.5px solid #c0392b;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  resize: none;
+  outline: none;
+  min-height: 70px;
+  margin-bottom: 10px;
+  line-height: 1.5;
+  color: #333;
+}
+
+.profile-stats {
+  font-size: 12px;
+  color: #aaa;
+  font-weight: 500;
+}
+
+/* Posts section */
+.profile-posts-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #aaa;
+  padding: 18px 20px 10px;
+}
+
+.profile-posts-list {
+  padding: 0 14px 80px;
+}
+
+.profile-no-posts {
+  text-align: center;
+  color: #bbb;
+  font-size: 14px;
+  padding: 32px 20px;
+  margin: 0;
+}
+
+/* Compact post cards in profile */
+.profile-post-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  margin-bottom: 10px;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  transition: transform 0.1s, box-shadow 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-post-card:active { transform: scale(0.98); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+
+.profile-post-thumb {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.profile-post-content {
+  flex: 1;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-post-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.4;
+  /* Clamp to 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.profile-post-loc {
+  font-size: 12px;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-post-meta {
+  font-size: 12px;
+  color: #bbb;
+}
+
+/* =========================
+   TOAST NOTIFICATIONS
+========================= */
+
+.toast {
+  position: fixed;
+  bottom: max(100px, calc(env(safe-area-inset-bottom) + 90px));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(30,30,30,0.92);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  z-index: 99999;
+  white-space: nowrap;
+  max-width: calc(100vw - 40px);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.toast.toast-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

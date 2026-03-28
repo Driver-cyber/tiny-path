@@ -113,7 +113,7 @@
         <h2>What should we call you?</h2>
         <p>This is the name your friends will see. You can change it anytime in Settings.</p>
         <form id="displayNameForm" class="auth-form">
-          <input id="displayNameInput" placeholder="Your name" maxlength="30" autocomplete="nickname" required />
+          <input id="displayNameInput" placeholder="Jonathan Peeholes" maxlength="30" autocomplete="nickname" required />
           <button type="submit" class="auth-btn">Let's go →</button>
         </form>
       </div>
@@ -190,6 +190,7 @@
               <button id="saveDisplayName" class="save-name-btn" type="button">Save</button>
             </div>
           </div>
+          <button id="editProfileBtn" class="edit-profile-btn" type="button">Edit profile</button>
           <button id="logoutBtn" class="logout-btn" type="button">Sign out</button>
 
           <div class="settings-divider"></div>
@@ -205,8 +206,18 @@
           <p class="settings-tip">Tiny Path will open like a native app — no address bar, no tabs. Just Tiny Path.</p>
 
         </div>
-        <div class="settings-version">Tiny Path v4.0</div>
+        <div class="settings-version">Tiny Path v4.2 · 2026-03-28</div>
       </div>
+    </div>
+
+    <!-- Profile Overlay -->
+    <div id="profileOverlay" class="profile-overlay hidden">
+      <div class="profile-overlay-header">
+        <button class="detail-back" id="profileBack">‹ Back</button>
+        <span class="detail-title">Profile</span>
+        <button class="profile-edit-header-btn hidden" id="profileEditBtn" aria-label="Edit bio" type="button"></button>
+      </div>
+      <div class="profile-overlay-body" id="profileBody"></div>
     </div>
 
     <!-- FAB Backdrop -->
