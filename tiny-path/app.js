@@ -1030,6 +1030,10 @@ sheetSubmit.addEventListener('click', async () => {
     let image_url = null;
 
     if (sheetImageFile) {
+      // Show upload indicator over the photo preview
+      sheetSubmit.textContent = 'Uploading…';
+      sheetPhotoArea.classList.add('uploading');
+
       const formData = new FormData();
       formData.append('file', sheetImageFile);
       formData.append('upload_preset', UPLOAD_PRESET);
@@ -1038,6 +1042,9 @@ sheetSubmit.addEventListener('click', async () => {
       });
       const data = await res.json();
       image_url  = data.secure_url;
+
+      sheetPhotoArea.classList.remove('uploading');
+      sheetSubmit.textContent = 'Posting…';
     }
 
     await supabase.from('posts').insert({
@@ -1051,6 +1058,7 @@ sheetSubmit.addEventListener('click', async () => {
     if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
     closeSheet();
   } catch {
+    sheetPhotoArea.classList.remove('uploading');
     sheetSubmit.disabled    = false;
     sheetSubmit.textContent = 'Post';
     alert('Could not post. Please try again.');

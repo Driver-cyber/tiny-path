@@ -770,6 +770,28 @@ body {
   border-radius: 14px;
 }
 
+/* Upload progress overlay */
+.sheet-photo-area.uploading::after {
+  content: 'Uploading…';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 14px;
+  animation: uploadPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes uploadPulse {
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 1; }
+}
+
 .sheet-change-photo {
   position: absolute;
   bottom: 8px;
