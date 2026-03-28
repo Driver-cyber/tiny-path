@@ -12,7 +12,7 @@
 
 **Vibe:** "Warm & Considered." Utility first, beauty close behind. Ship, learn, iterate.
 
-**Current Version:** v3.5 · 2026-03-04
+**Current Version:** v4.0 · 2026-03-27
 
 | App | URL | Backend |
 |---|---|---|
@@ -141,6 +141,40 @@ tiny-path/                  ← repo root
 - meta description added
 - Version comment in app.js reminds to also bump sw.js CACHE_VERSION
 
+### [2026-03-27] — Radial FAB (v3.1)
+- Replaced top-of-screen composer with Path's iconic radial floating action button
+- FAB initially placed at bottom-center; fanned 3 radial options: text (pencil), photo (camera), location (pin)
+- Icons only — no labels
+- Backdrop tap closes the fan; haptic on open
+- Post sheet slides up from bottom (Cancel / Post header, handle bar, char counter)
+- Photo mode triggers file picker immediately on tap; caption optional
+- Location mode auto-fetches via Nominatim on open
+- Detail view hides FAB while open; FAB restored on close
+
+### [2026-03-27] — FAB to Bottom-Right + Fan Direction (v3.2)
+- Moved FAB anchor to bottom-right corner (was centered)
+- Radial buttons now fan toward upper-left — the axis from the FAB corner toward screen center
+- Arc: Text (almost straight left) → Photo (upper-left diagonal) → Location (almost straight up)
+- Stagger delay sweeps Text→Photo→Location so animation unfolds naturally across the arc
+
+### [2026-03-27] — Per-User Votes + Emoji Reactions (v4.0)
+- **Votes table** replaces `upvotes`/`downvotes` columns on posts (columns dropped)
+  - Schema: `votes(id, post_id, user_id, display_name, vote_type, created_at)` UNIQUE(post_id, user_id)
+  - One vote per user per post; toggling the same type removes it; switching type replaces it
+  - Active vote highlighted (up = red, down = slate)
+- **Reactions table** for emoji reactions
+  - Schema: `reactions(id, post_id, user_id, display_name, emoji, created_at)` UNIQUE(post_id, user_id, emoji)
+  - One row per user per emoji per post — multiple emoji per user allowed
+  - `display_name` stored at reaction time so breakdowns work without profile join
+- **Emoji picker** — 16-emoji curated grid (❤️🔥😂😮😢😡🎉👀😍🙌💯🫶✨💀🤣😭)
+  - Floating above trigger button, positioned with clamp-to-viewport logic
+  - Selected emoji highlighted; tapping again deselects
+- **Reaction badges** on feed cards: `emoji count` pills, user's own reactions outlined in red
+- **"See who reacted" breakdown** in post detail — tap to expand per-emoji/vote list with display names
+- **Realtime** for votes and reactions via postgres_changes channels (REPLICA IDENTITY FULL on both tables)
+- **Scroll lock** added to image modal and settings modal (detail view already had it)
+- Both tables: RLS enabled, anyone can read, users manage only their own rows
+
 ---
 
 ## 🔜 Next Up (Prioritized Backlog)
@@ -154,22 +188,28 @@ These were discussed and ranked by the user. Build in this order:
 5. ✅ Multi-photo upload (shipped v3.2)
 6. ✅ Clickable avatars → profile view (shipped v3.3)
 
-**Next features to consider (not yet started):**
-- Post deletion (own posts only)
+**Shipped this session (move these to done):**
+- ✅ Radial FAB (v3.1)
+- ✅ FAB to bottom-right, fan toward center (v3.2)
+- ✅ Per-user votes (v4.0)
+- ✅ Emoji reactions + picker (v4.0)
+- ✅ Reaction breakdown / "see who reacted" (v4.0)
+- ✅ Scroll lock on all modals (v4.0)
+
+**Next features to consider:**
 - Notification / unread indicator for new posts
 - Family Path Supabase migration
+- Multi-photo upload
+- Profile view (tap avatar → overlay with posts + bio)
+- Post deletion confirmation UI improvement (replace `confirm()` dialog)
 
 ---
 
 ## 💡 Parking Lot (Explicitly Deferred)
 
-- Radial / fan-out post button
-- Emotion reactions (❤️ 😄 😢)
 - Avatar photo uploads
 - Invite code gate
 - Music sharing
 - Dark mode
-- Post editing
 - Threaded comments
-- Per-user vote tracking
-- Family Path migration (needs new Supabase project — free tier limit)
+- Family Path migration (needs separate Supabase project)
