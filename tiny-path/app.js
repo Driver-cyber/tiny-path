@@ -487,26 +487,19 @@ function teardownApp() {
 ═══════════════════════════════════════ */
 
 async function loadPosts() {
-  const [postsRes, votesRes, reactionsRes] = await Promise.all([
+  const [postsRes, votesRes, reactionsRes, profilesRes] = await Promise.all([
     supabase.from('posts').select('*').order('created_at', { ascending: false }),
     supabase.from('votes').select('*'),
-    supabase.from('reactions').select('*')
+    supabase.from('reactions').select('*'),
+    supabase.from('profiles').select('id, display_name, avatar_url, avatar_initials')
   ]);
 
   allPosts     = postsRes.data     || [];
   allVotes     = votesRes.data     || [];
   allReactions = reactionsRes.data || [];
 
-  // Fetch profiles for all unique posters so we can render avatar photos
-  const userIds = [...new Set(allPosts.map(p => p.user_id))];
-  if (userIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, display_name, avatar_url, avatar_initials')
-      .in('id', userIds);
-    allProfiles = {};
-    (profiles || []).forEach(p => { allProfiles[p.id] = p; });
-  }
+  allProfiles = {};
+  (profilesRes.data || []).forEach(p => { allProfiles[p.id] = p; });
 
   renderFeed();
 }
