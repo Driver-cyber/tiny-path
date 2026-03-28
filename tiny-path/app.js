@@ -247,14 +247,23 @@ authForm.addEventListener('submit', async e => {
       sentEmailDisplay.textContent = email;
       showScreen('checkemail');
     } else {
+      // Show a "still working" hint after 8s — Supabase can be slow to wake
+      const slowHint = setTimeout(() => {
+        authError.textContent = 'Still connecting — hang tight…';
+        authError.classList.remove('hidden');
+      }, 8000);
+
+      // Hard timeout at 35s: if we haven't heard back, give up
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timed out — check your connection and try again.')), 15000)
+        setTimeout(() => reject(new Error('Could not reach the server — check your connection and try again.')), 35000)
       );
       const { error } = await Promise.race([
         supabase.auth.signInWithPassword({ email, password }),
         timeout
       ]);
+      clearTimeout(slowHint);
       if (error) throw error;
+      authError.classList.add('hidden');
     }
   } catch (err) {
     authError.textContent = err.message;
@@ -340,7 +349,7 @@ setPasswordForm.addEventListener('submit', async e => {
   // Password updated — clear recovery mode, load profile and proceed
   inPasswordRecovery = false;
   const { data: profile } = await supabase
-    .from('profiles').select('display_name, bio, cover_photo_url, created_at').eq('id', currentUser.id).maybeSingle();
+    .from('profiles').select('display_name, bio, cover_photo_url, avatar_url, avatar_initials, created_at').eq('id', currentUser.id).maybeSingle();
 
   if (!profile) {
     showScreen('displayname');
@@ -420,7 +429,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, bio, cover_photo_url, created_at')
+    .select('display_name, bio, cover_photo_url, avatar_url, avatar_initials, created_at')
     .eq('id', currentUser.id)
     .maybeSingle();
 
