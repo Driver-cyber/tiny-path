@@ -151,6 +151,15 @@ tiny-path/                  ← repo root
 - Location mode auto-fetches via Nominatim on open
 - Detail view hides FAB while open; FAB restored on close
 
+### [2026-03-27] — Password Reset Flow (v4.1)
+- Added "Forgot password?" link on sign-in screen (subtle, below submit button)
+- Forgot password screen: email input → `supabase.auth.resetPasswordForEmail()` with `redirectTo: tiny-path.pages.dev`
+- Success state shown inline on same card (no extra screen)
+- Set new password screen: shown when user returns via reset link (`PASSWORD_RECOVERY` auth event)
+- Fixed race condition: Supabase fires `SIGNED_IN` immediately after `PASSWORD_RECOVERY`, which was skipping the set-password screen. Fixed with `inPasswordRecovery` flag that blocks `SIGNED_IN` handler until password is submitted
+- Friendly error message for Supabase's built-in email rate limit
+- **Pending:** Custom SMTP via Resend to eliminate rate limits (see Next Session)
+
 ### [2026-03-27] — FAB to Bottom-Right + Fan Direction (v3.2)
 - Moved FAB anchor to bottom-right corner (was centered)
 - Radial buttons now fan toward upper-left — the axis from the FAB corner toward screen center
@@ -195,8 +204,14 @@ These were discussed and ranked by the user. Build in this order:
 - ✅ Emoji reactions + picker (v4.0)
 - ✅ Reaction breakdown / "see who reacted" (v4.0)
 - ✅ Scroll lock on all modals (v4.0)
+- ✅ Password reset flow (v4.1)
 
-**Next features to consider:**
+**Next session — do these first (blockers for sharing with users):**
+1. **Set up Resend SMTP** — connect custom domain email to Supabase so auth emails don't hit rate limits. Steps: sign up at resend.com → add domain → get DNS records → verify → create API key → Supabase Auth → SMTP Settings (host: smtp.resend.com, port: 465, user: resend, password: API key)
+2. **Set Supabase Auth redirect URL** — Supabase → Auth → URL Configuration → Site URL + Redirect URLs → `https://tiny-path.pages.dev`
+3. **Merge dev → main** — triggers production deploy on Cloudflare Pages
+
+**Next features to consider (after launch):**
 - Notification / unread indicator for new posts
 - Family Path Supabase migration
 - Multi-photo upload

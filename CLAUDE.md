@@ -78,7 +78,7 @@ The shared emotional design goal: *a digital journal you share with your closest
 
 ## 💡 Interaction Patterns (Shipped as of v4.0)
 
-- **Auth:** Full-screen login/signup overlay. Email + password, email verification. Display name stored in `profiles` table (Supabase), frozen at post time. `user_id` UUID is immutable identity.
+- **Auth:** Full-screen login/signup overlay. Email + password, email verification required. "Forgot password?" link → reset email → set new password screen. Display name stored in `profiles` table (Supabase), frozen at post time. `user_id` UUID is immutable identity.
 - **Post Detail View:** Slides in from right. Swipe right to dismiss. Body scroll locked while open.
 - **Radial FAB:** Bottom-right corner. Red floating button fans out 3 options (Text/pencil, Photo/camera, Location/pin) in an arc toward screen center (upper-left). Backdrop tap closes. Haptic on open.
 - **Post Sheet:** Bottom sheet with Cancel/Post header, handle bar, char counter (300). Text mode focuses textarea. Photo mode triggers file picker immediately. Location mode auto-fetches via Nominatim.
