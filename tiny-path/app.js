@@ -62,19 +62,35 @@ let emojiPickerEl       = null;
    DOM REFS — AUTH
 ═══════════════════════════════════════ */
 
-const authScreen        = document.getElementById('authScreen');
-const checkEmailScreen  = document.getElementById('checkEmailScreen');
-const displayNameScreen = document.getElementById('displayNameScreen');
-const appShell          = document.getElementById('appShell');
+const authScreen           = document.getElementById('authScreen');
+const checkEmailScreen     = document.getElementById('checkEmailScreen');
+const displayNameScreen    = document.getElementById('displayNameScreen');
+const forgotPasswordScreen = document.getElementById('forgotPasswordScreen');
+const setPasswordScreen    = document.getElementById('setPasswordScreen');
+const appShell             = document.getElementById('appShell');
 const authForm          = document.getElementById('authForm');
 const authEmail         = document.getElementById('authEmail');
 const authPassword      = document.getElementById('authPassword');
 const authError         = document.getElementById('authError');
 const authSubmit        = document.getElementById('authSubmit');
 const sentEmailDisplay  = document.getElementById('sentEmailDisplay');
-const backToSignIn      = document.getElementById('backToSignIn');
-const displayNameForm   = document.getElementById('displayNameForm');
-const displayNameInput  = document.getElementById('displayNameInput');
+const backToSignIn         = document.getElementById('backToSignIn');
+const displayNameForm      = document.getElementById('displayNameForm');
+const displayNameInput     = document.getElementById('displayNameInput');
+const forgotPasswordBtn    = document.getElementById('forgotPasswordBtn');
+const forgotPasswordForm   = document.getElementById('forgotPasswordForm');
+const forgotEmail          = document.getElementById('forgotEmail');
+const forgotError          = document.getElementById('forgotError');
+const forgotSubmit         = document.getElementById('forgotSubmit');
+const forgotFormBody       = document.getElementById('forgotFormBody');
+const forgotSuccess        = document.getElementById('forgotSuccess');
+const forgotEmailDisplay   = document.getElementById('forgotEmailDisplay');
+const backFromForgot       = document.getElementById('backFromForgot');
+const backFromForgotSuccess = document.getElementById('backFromForgotSuccess');
+const setPasswordForm      = document.getElementById('setPasswordForm');
+const newPasswordInput     = document.getElementById('newPasswordInput');
+const setPasswordError     = document.getElementById('setPasswordError');
+const setPasswordSubmit    = document.getElementById('setPasswordSubmit');
 
 /* ═══════════════════════════════════════
    DOM REFS — APP
@@ -141,10 +157,12 @@ function esc(str) {
 ═══════════════════════════════════════ */
 
 function showScreen(name) {
-  authScreen.classList.toggle('hidden',        name !== 'auth');
-  checkEmailScreen.classList.toggle('hidden',  name !== 'checkemail');
-  displayNameScreen.classList.toggle('hidden', name !== 'displayname');
-  appShell.classList.toggle('hidden',          name !== 'app');
+  authScreen.classList.toggle('hidden',            name !== 'auth');
+  checkEmailScreen.classList.toggle('hidden',      name !== 'checkemail');
+  displayNameScreen.classList.toggle('hidden',     name !== 'displayname');
+  forgotPasswordScreen.classList.toggle('hidden',  name !== 'forgotpassword');
+  setPasswordScreen.classList.toggle('hidden',     name !== 'setpassword');
+  appShell.classList.toggle('hidden',              name !== 'app');
 }
 
 /* ═══════════════════════════════════════
@@ -202,6 +220,83 @@ backToSignIn.addEventListener('click', () => {
 });
 
 /* ═══════════════════════════════════════
+   AUTH — FORGOT PASSWORD
+═══════════════════════════════════════ */
+
+forgotPasswordBtn.addEventListener('click', () => {
+  forgotEmail.value = authEmail.value.trim();
+  forgotError.classList.add('hidden');
+  forgotFormBody.classList.remove('hidden');
+  forgotSuccess.classList.add('hidden');
+  showScreen('forgotpassword');
+});
+
+backFromForgot.addEventListener('click', () => showScreen('auth'));
+backFromForgotSuccess.addEventListener('click', () => showScreen('auth'));
+
+forgotPasswordForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = forgotEmail.value.trim();
+  if (!email) return;
+
+  forgotSubmit.disabled    = true;
+  forgotSubmit.textContent = 'Sending…';
+  forgotError.classList.add('hidden');
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://tiny-path.pages.dev'
+  });
+
+  forgotSubmit.disabled    = false;
+  forgotSubmit.textContent = 'Send reset link';
+
+  if (error) {
+    forgotError.textContent = error.message;
+    forgotError.classList.remove('hidden');
+    return;
+  }
+
+  forgotEmailDisplay.textContent = email;
+  forgotFormBody.classList.add('hidden');
+  forgotSuccess.classList.remove('hidden');
+});
+
+/* ═══════════════════════════════════════
+   AUTH — SET NEW PASSWORD
+═══════════════════════════════════════ */
+
+setPasswordForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const password = newPasswordInput.value;
+  if (!password) return;
+
+  setPasswordSubmit.disabled    = true;
+  setPasswordSubmit.textContent = 'Saving…';
+  setPasswordError.classList.add('hidden');
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    setPasswordError.textContent = error.message;
+    setPasswordError.classList.remove('hidden');
+    setPasswordSubmit.disabled    = false;
+    setPasswordSubmit.textContent = 'Set password';
+    return;
+  }
+
+  // Password updated — load profile and proceed
+  const { data: profile } = await supabase
+    .from('profiles').select('display_name').eq('id', currentUser.id).maybeSingle();
+
+  if (!profile) {
+    showScreen('displayname');
+  } else {
+    currentProfile = profile;
+    if (!appInitialized) initApp();
+  }
+});
+
+/* ═══════════════════════════════════════
    AUTH — DISPLAY NAME SETUP
 ═══════════════════════════════════════ */
 
@@ -235,6 +330,12 @@ displayNameForm.addEventListener('submit', async e => {
 ═══════════════════════════════════════ */
 
 supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    currentUser = session.user;
+    showScreen('setpassword');
+    return;
+  }
+
   if (!session) {
     currentUser    = null;
     currentProfile = null;

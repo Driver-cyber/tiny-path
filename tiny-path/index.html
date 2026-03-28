@@ -37,6 +37,52 @@
         <div id="authError" class="auth-error hidden"></div>
         <button type="submit" class="auth-btn" id="authSubmit">Sign in</button>
       </form>
+      <button id="forgotPasswordBtn" class="auth-link-btn" type="button">Forgot password?</button>
+    </div>
+  </div>
+
+  <!-- ── FORGOT PASSWORD SCREEN ───────────────────────── -->
+  <div id="forgotPasswordScreen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-tiny">Tiny</span>
+        <span class="logo-path">Path</span>
+      </div>
+      <div id="forgotFormBody" class="display-name-body">
+        <h2>Reset your password</h2>
+        <p>Enter your email and we'll send you a link to set a new one.</p>
+        <form id="forgotPasswordForm" class="auth-form">
+          <input id="forgotEmail" type="email" placeholder="Email address" autocomplete="email" required />
+          <div id="forgotError" class="auth-error hidden"></div>
+          <button type="submit" class="auth-btn" id="forgotSubmit">Send reset link</button>
+        </form>
+        <button id="backFromForgot" class="auth-link-btn" type="button">← Back to sign in</button>
+      </div>
+      <div id="forgotSuccess" class="check-email-body hidden">
+        <div class="check-email-icon">✉️</div>
+        <h2>Check your email</h2>
+        <p>We sent a reset link to <strong id="forgotEmailDisplay"></strong>. Click it to set a new password.</p>
+        <button id="backFromForgotSuccess" class="auth-btn" type="button">Back to sign in</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SET NEW PASSWORD SCREEN ───────────────────────── -->
+  <div id="setPasswordScreen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-tiny">Tiny</span>
+        <span class="logo-path">Path</span>
+      </div>
+      <div class="display-name-body">
+        <h2>Set new password</h2>
+        <p>Choose a strong password for your account.</p>
+        <form id="setPasswordForm" class="auth-form">
+          <input id="newPasswordInput" type="password" placeholder="New password" autocomplete="new-password" required />
+          <div id="setPasswordError" class="auth-error hidden"></div>
+          <button type="submit" class="auth-btn" id="setPasswordSubmit">Set password</button>
+        </form>
+      </div>
     </div>
   </div>
 
