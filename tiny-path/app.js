@@ -380,6 +380,17 @@ displayNameForm.addEventListener('submit', async e => {
 });
 
 /* ═══════════════════════════════════════
+   PREVENT PAGE-LEVEL PINCH ZOOM
+   (crop tool uses touch-action:none on its own window so it's unaffected)
+═══════════════════════════════════════ */
+
+document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+
+/* ═══════════════════════════════════════
    AUTH STATE LISTENER
 ═══════════════════════════════════════ */
 
