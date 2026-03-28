@@ -11,7 +11,7 @@ const CLOUD_NAME        = 'dqqml8dae';
 const UPLOAD_PRESET     = 'tiny-path-unsigned';
 const CHAR_LIMIT        = 300;
 
-const EMOJIS = ['❤️','🔥','😂','😮','😢','😡','🎉','👀','😍','🙌','💯','🫶','✨','💀','🤣','😭'];
+// EMOJIS constant kept for reference but no longer used for the custom picker
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -25,7 +25,9 @@ const ICON = {
   comment:    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
   share:      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`,
   pencil:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
-  trash:      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`
+  trash:      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`,
+  smile:      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+  camera:     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`
 };
 
 /* ═══════════════════════════════════════
@@ -58,6 +60,9 @@ let sheetLocation       = null;
 // Emoji picker state
 let emojiPickerPostId   = null;
 let emojiPickerEl       = null;
+
+// Profile overlay state
+let profileOverlayUserId = null;
 
 /* ═══════════════════════════════════════
    DOM REFS — AUTH
@@ -117,6 +122,16 @@ const settingsEmail     = document.getElementById('settingsEmail');
 const settingsDisplayName = document.getElementById('settingsDisplayName');
 const saveDisplayName   = document.getElementById('saveDisplayName');
 const logoutBtn         = document.getElementById('logoutBtn');
+const editProfileBtn    = document.getElementById('editProfileBtn');
+
+/* ═══════════════════════════════════════
+   DOM REFS — PROFILE OVERLAY
+═══════════════════════════════════════ */
+
+const profileOverlay     = document.getElementById('profileOverlay');
+const profileBack        = document.getElementById('profileBack');
+const profileBody        = document.getElementById('profileBody');
+const profileEditBtn     = document.getElementById('profileEditBtn');
 
 /* ═══════════════════════════════════════
    DOM REFS — FAB + SHEET
@@ -290,7 +305,7 @@ setPasswordForm.addEventListener('submit', async e => {
   // Password updated — clear recovery mode, load profile and proceed
   inPasswordRecovery = false;
   const { data: profile } = await supabase
-    .from('profiles').select('display_name').eq('id', currentUser.id).maybeSingle();
+    .from('profiles').select('display_name, bio, cover_photo_url, created_at').eq('id', currentUser.id).maybeSingle();
 
   if (!profile) {
     showScreen('displayname');
@@ -359,7 +374,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name')
+    .select('display_name, bio, cover_photo_url, created_at')
     .eq('id', currentUser.id)
     .maybeSingle();
 
@@ -405,6 +420,7 @@ function teardownApp() {
   allReactions = [];
   feed.innerHTML = '';
   closeDetail(true);
+  closeProfile(true);
   closeFab();
   closeSheet();
   closeEmojiPicker();
@@ -507,6 +523,22 @@ function refreshVoteReactionUI(postId) {
 }
 
 /* ═══════════════════════════════════════
+   TOAST NOTIFICATIONS
+═══════════════════════════════════════ */
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('toast-visible'));
+  setTimeout(() => {
+    t.classList.remove('toast-visible');
+    setTimeout(() => t.remove(), 300);
+  }, 3000);
+}
+
+/* ═══════════════════════════════════════
    VOTES + REACTIONS — HELPERS
 ═══════════════════════════════════════ */
 
@@ -547,12 +579,14 @@ async function castVote(postId, type) {
     if (existing.vote_type === type) {
       // Toggle off — delete
       const { error } = await supabase.from('votes').delete().eq('id', existing.id);
-      if (!error) allVotes = allVotes.filter(v => v.id !== existing.id);
+      if (error) { showToast('Could not remove vote. Try again.'); return; }
+      allVotes = allVotes.filter(v => v.id !== existing.id);
     } else {
       // Switch up ↔ down
       const { data, error } = await supabase
         .from('votes').update({ vote_type: type }).eq('id', existing.id).select().single();
-      if (!error && data) {
+      if (error) { showToast('Could not update vote. Try again.'); return; }
+      if (data) {
         const idx = allVotes.findIndex(v => v.id === existing.id);
         if (idx !== -1) allVotes[idx] = data;
       }
@@ -562,7 +596,8 @@ async function castVote(postId, type) {
       post_id: postId, user_id: currentUser.id,
       display_name: currentProfile.display_name, vote_type: type
     }).select().single();
-    if (!error && data) allVotes.push(data);
+    if (error) { showToast('Could not save vote. Try again.'); return; }
+    if (data) allVotes.push(data);
   }
 
   refreshVoteReactionUI(postId);
@@ -576,54 +611,74 @@ async function toggleReaction(postId, emoji) {
 
   if (existing) {
     const { error } = await supabase.from('reactions').delete().eq('id', existing.id);
-    if (!error) allReactions = allReactions.filter(r => r.id !== existing.id);
+    if (error) { showToast('Could not remove reaction. Try again.'); return; }
+    allReactions = allReactions.filter(r => r.id !== existing.id);
   } else {
     const { data, error } = await supabase.from('reactions').insert({
       post_id: postId, user_id: currentUser.id,
       display_name: currentProfile.display_name, emoji
     }).select().single();
-    if (!error && data) allReactions.push(data);
+    if (error) { showToast('Could not save reaction. Try again.'); return; }
+    if (data) allReactions.push(data);
   }
 
   refreshVoteReactionUI(postId);
 }
 
 /* ═══════════════════════════════════════
-   EMOJI PICKER
+   EMOJI INPUT (NATIVE KEYBOARD)
 ═══════════════════════════════════════ */
 
 function openEmojiPicker(postId, anchorEl) {
   closeEmojiPicker();
   emojiPickerPostId = postId;
 
-  const picker = document.createElement('div');
-  picker.className = 'emoji-picker';
-  picker.innerHTML = EMOJIS.map(e =>
-    `<button class="emoji-option${hasUserReacted(postId, e) ? ' emoji-selected' : ''}" data-emoji="${e}">${e}</button>`
-  ).join('');
+  const bubble = document.createElement('div');
+  bubble.className = 'emoji-input-bubble';
+  bubble.innerHTML = `
+    <div class="emoji-input-hint">Type or paste any emoji</div>
+    <input class="emoji-input-field" type="text" inputmode="text"
+           placeholder="😊" autocomplete="off" autocorrect="off"
+           autocapitalize="off" spellcheck="false" maxlength="8" />
+  `;
 
-  picker.querySelectorAll('.emoji-option').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      toggleReaction(postId, btn.dataset.emoji);
-      closeEmojiPicker();
-    });
-  });
+  document.body.appendChild(bubble);
+  emojiPickerEl = bubble;
 
-  document.body.appendChild(picker);
-  emojiPickerEl = picker;
+  const inputEl = bubble.querySelector('.emoji-input-field');
 
   requestAnimationFrame(() => {
     const rect = anchorEl.getBoundingClientRect();
-    const pw   = picker.offsetWidth;
-    const ph   = picker.offsetHeight;
-    let left   = rect.left + rect.width / 2 - pw / 2;
-    let top    = rect.top - ph - 8;
-    left = Math.max(8, Math.min(window.innerWidth - pw - 8, left));
-    top  = Math.max(8, top);
-    picker.style.left = left + 'px';
-    picker.style.top  = top  + 'px';
-    picker.classList.add('positioned');
+    const bw   = bubble.offsetWidth  || 200;
+    const bh   = bubble.offsetHeight || 80;
+    let left   = rect.left + rect.width / 2 - bw / 2;
+    let top    = rect.top - bh - 10;
+    // If not enough room above, show below
+    if (top < 8) top = rect.bottom + 10;
+    left = Math.max(8, Math.min(window.innerWidth - bw - 8, left));
+    top  = Math.max(8, Math.min(window.innerHeight - bh - 8, top));
+    bubble.style.left = left + 'px';
+    bubble.style.top  = top  + 'px';
+    bubble.classList.add('positioned');
+    // Small delay before focus so the bubble animation completes on iOS
+    setTimeout(() => inputEl.focus(), 80);
+  });
+
+  inputEl.addEventListener('input', () => {
+    const val = inputEl.value;
+    if (!val) return;
+    // Extract first grapheme cluster (handles multi-codepoint emoji like 👨‍👩‍👧)
+    let emoji;
+    try {
+      const seg  = new Intl.Segmenter();
+      const segs = [...seg.segment(val)];
+      emoji = segs[0]?.segment;
+    } catch {
+      emoji = [...val][0]; // fallback for older browsers
+    }
+    if (!emoji || emoji.trim() === '') return;
+    toggleReaction(postId, emoji);
+    closeEmojiPicker();
   });
 
   setTimeout(() => {
@@ -690,7 +745,7 @@ function buildPostActionsHtml(post) {
     <div class="post-actions">
       <button class="vote-btn upvote-btn${userVote?.vote_type === 'up' ? ' vote-active vote-up' : ''}">${ICON.thumbsUp} <span class="vote-count">${upCount}</span></button>
       <button class="vote-btn downvote-btn${userVote?.vote_type === 'down' ? ' vote-active vote-down' : ''}">${ICON.thumbsDown} <span class="vote-count">${downCount}</span></button>
-      <button class="emoji-trigger-btn" aria-label="Add reaction">😊</button>
+      <button class="emoji-trigger-btn" aria-label="Add reaction">${ICON.smile}</button>
       ${badges ? `<div class="reaction-badges">${badges}</div>` : ''}
       <span class="comment-hint post-tap">${ICON.comment} Comments</span>
     </div>
@@ -777,7 +832,7 @@ function renderFeed() {
 
     postEl.querySelector('.filter-link').addEventListener('click', e => {
       e.stopPropagation();
-      setFilter(post.user_id, post.display_name);
+      openProfile(post.user_id);
     });
 
     bindPostActionsListeners(postEl, post);
@@ -1091,9 +1146,9 @@ function renderDetailBody(post) {
     <div class="detail-post">
       <div class="post-header">
         <div class="post-user">
-          <div class="avatar">${esc(firstLetter)}</div>
+          <div class="avatar filter-link" data-userid="${esc(post.user_id)}">${esc(firstLetter)}</div>
           <div>
-            <div class="username">${esc(post.display_name)}</div>
+            <div class="username filter-link" data-userid="${esc(post.user_id)}">${esc(post.display_name)}</div>
             <div class="timestamp">${fullTimestamp(post.created_at)} ${editedLabel}</div>
           </div>
         </div>
@@ -1108,13 +1163,17 @@ function renderDetailBody(post) {
       <div class="detail-votes">
         <button class="vote-btn detail-upvote${userVote?.vote_type === 'up'   ? ' vote-active vote-up'   : ''}">${ICON.thumbsUp}   <span>${upCount}</span></button>
         <button class="vote-btn detail-downvote${userVote?.vote_type === 'down' ? ' vote-active vote-down' : ''}">${ICON.thumbsDown} <span>${downCount}</span></button>
-        <button class="emoji-trigger-btn" aria-label="Add reaction">😊</button>
+        <button class="emoji-trigger-btn" aria-label="Add reaction">${ICON.smile}</button>
         ${badges ? `<div class="reaction-badges">${badges}</div>` : ''}
         <button class="vote-btn share-btn">${ICON.share} Share</button>
       </div>
       ${breakdownHtml}
     </div>
   `;
+
+  detailBody.querySelectorAll('.filter-link').forEach(el => {
+    el.addEventListener('click', () => openProfile(post.user_id));
+  });
 
   if (canEdit)   detailBody.querySelector('.edit-btn').addEventListener('click', () => renderDetailBodyEdit(post));
   if (canDelete) detailBody.querySelector('.delete-btn').addEventListener('click', () => deletePost(post.id));
@@ -1370,6 +1429,11 @@ logoutBtn.addEventListener('click', async () => {
   await supabase.auth.signOut();
 });
 
+editProfileBtn.addEventListener('click', () => {
+  closeSettingsModal();
+  openProfile(currentUser.id);
+});
+
 /* ═══════════════════════════════════════
    IMAGE MODAL
 ═══════════════════════════════════════ */
@@ -1390,6 +1454,261 @@ closeModal.addEventListener('click', closeImageModal);
 imageModal.addEventListener('click', e => {
   if (e.target === imageModal) closeImageModal();
 });
+
+/* ═══════════════════════════════════════
+   PROFILE OVERLAY
+═══════════════════════════════════════ */
+
+async function openProfile(userId) {
+  // Lock scroll and hide FAB immediately (before async fetch)
+  document.body.style.overflow = 'hidden';
+  fabContainer.classList.add('hidden');
+
+  const [profileRes, postsRes] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    supabase.from('posts').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+  ]);
+
+  const profile = profileRes.data;
+  const posts   = postsRes.data || [];
+
+  if (!profile) {
+    // No profile yet — restore state
+    if (!currentDetailPostId) document.body.style.overflow = '';
+    fabContainer.classList.remove('hidden');
+    return;
+  }
+
+  profileOverlayUserId = userId;
+  renderProfileOverlay(userId, profile, posts);
+
+  profileOverlay.style.transform  = '';
+  profileOverlay.style.transition = '';
+  profileOverlay.classList.remove('hidden');
+}
+
+function closeProfile(skipAnimation = false) {
+  function finish() {
+    profileOverlay.classList.add('hidden');
+    profileOverlay.style.transform  = '';
+    profileOverlay.style.transition = '';
+    profileOverlayUserId = null;
+    if (!currentDetailPostId) {
+      document.body.style.overflow = '';
+      fabContainer.classList.remove('hidden');
+    }
+  }
+
+  if (skipAnimation) { finish(); return; }
+
+  profileOverlay.style.transition = 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
+  profileOverlay.style.transform  = 'translateX(100%)';
+  setTimeout(finish, 280);
+}
+
+profileBack.addEventListener('click', () => closeProfile());
+
+function renderProfileOverlay(userId, profile, posts) {
+  const isOwn      = currentUser && userId === currentUser.id;
+  const letter     = (profile.display_name || '?').charAt(0).toUpperCase();
+
+  // Show/hide edit button in header
+  profileEditBtn.classList.toggle('hidden', !isOwn);
+  profileEditBtn.innerHTML = ICON.pencil;
+
+  const memberDate = profile.created_at
+    ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : '';
+
+  profileBody.innerHTML = `
+    <div class="profile-cover-area">
+      ${profile.cover_photo_url
+        ? `<img class="profile-cover-img" src="${esc(profile.cover_photo_url)}" alt="Cover photo" />`
+        : `<div class="profile-cover-placeholder"></div>`}
+      ${isOwn ? `
+        <label class="profile-cover-change" for="profileCoverInput" title="Change cover photo">
+          ${ICON.camera}
+          <input type="file" id="profileCoverInput" accept="image/*" hidden />
+        </label>` : ''}
+      <div class="profile-avatar-big">${esc(letter)}</div>
+    </div>
+    <div class="profile-info">
+      <div class="profile-name">${esc(profile.display_name)}</div>
+      ${isOwn ? `
+        <div class="profile-bio${!profile.bio ? ' profile-bio-empty' : ''}" id="profileBioDisplay">
+          ${profile.bio ? esc(profile.bio) : 'Tap to add a bio…'}
+        </div>
+        <textarea class="profile-bio-edit hidden" id="profileBioEdit"
+          placeholder="Tell your friends a little about yourself…"
+          maxlength="160">${esc(profile.bio || '')}</textarea>
+      ` : `
+        <div class="profile-bio${!profile.bio ? ' profile-bio-empty' : ''}">
+          ${profile.bio ? esc(profile.bio) : 'No bio yet.'}
+        </div>
+      `}
+      <div class="profile-stats">
+        ${posts.length} ${posts.length === 1 ? 'post' : 'posts'}
+        ${memberDate ? ` · Since ${memberDate}` : ''}
+      </div>
+    </div>
+    ${posts.length > 0 ? `
+      <div class="profile-posts-header">Posts</div>
+      <div class="profile-posts-list" id="profilePostsList"></div>
+    ` : `<p class="profile-no-posts">No posts yet.</p>`}
+  `;
+
+  // Wire up cover photo change (own profile only)
+  if (isOwn) {
+    const coverInput = document.getElementById('profileCoverInput');
+    if (coverInput) {
+      coverInput.addEventListener('change', async () => {
+        const file = coverInput.files[0];
+        if (!file) return;
+        const label = profileBody.querySelector('.profile-cover-change');
+        if (label) label.style.opacity = '0.4';
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', UPLOAD_PRESET);
+        const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+          method: 'POST', body: formData
+        });
+        const data = await res.json();
+        const url  = data.secure_url;
+        if (!url) { showToast('Cover photo upload failed.'); if (label) label.style.opacity = ''; return; }
+
+        const { error } = await supabase
+          .from('profiles').update({ cover_photo_url: url }).eq('id', currentUser.id);
+        if (error) { showToast('Could not save cover photo.'); if (label) label.style.opacity = ''; return; }
+
+        currentProfile.cover_photo_url = url;
+
+        // Swap placeholder / old image
+        const coverArea = profileBody.querySelector('.profile-cover-placeholder, .profile-cover-img');
+        if (coverArea) {
+          const img  = document.createElement('img');
+          img.className = 'profile-cover-img';
+          img.src    = url;
+          img.alt    = 'Cover photo';
+          coverArea.replaceWith(img);
+        }
+        if (label) label.style.opacity = '';
+      });
+    }
+
+    // Bio inline editing
+    const bioDisplay = document.getElementById('profileBioDisplay');
+    const bioEdit    = document.getElementById('profileBioEdit');
+    if (bioDisplay && bioEdit) {
+      bioDisplay.addEventListener('click', () => {
+        bioDisplay.classList.add('hidden');
+        bioEdit.classList.remove('hidden');
+        bioEdit.focus();
+        bioEdit.setSelectionRange(bioEdit.value.length, bioEdit.value.length);
+      });
+
+      const saveBio = async () => {
+        const newBio = bioEdit.value.trim();
+        bioEdit.classList.add('hidden');
+        bioDisplay.classList.remove('hidden');
+        if (newBio === (profile.bio || '')) return;
+
+        const { error } = await supabase
+          .from('profiles').update({ bio: newBio || null }).eq('id', currentUser.id);
+        if (error) { showToast('Could not save bio.'); return; }
+
+        currentProfile.bio = newBio || null;
+        profile.bio        = newBio || null;
+        bioDisplay.textContent = newBio || 'Tap to add a bio…';
+        bioDisplay.classList.toggle('profile-bio-empty', !newBio);
+      };
+
+      bioEdit.addEventListener('blur', saveBio);
+      bioEdit.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); bioEdit.blur(); }
+      });
+    }
+  }
+
+  // Render posts list
+  const postsList = document.getElementById('profilePostsList');
+  if (postsList) {
+    posts.forEach(post => {
+      const el = document.createElement('div');
+      el.className = 'profile-post-card';
+      el.innerHTML = `
+        ${post.image_url ? `<img class="profile-post-thumb" src="${esc(post.image_url)}" alt="" />` : ''}
+        <div class="profile-post-content">
+          ${post.text  ? `<div class="profile-post-text">${esc(post.text)}</div>` : ''}
+          ${post.location ? `<div class="profile-post-loc">📍 ${esc(post.location)}</div>` : ''}
+          <div class="profile-post-meta">${timeAgo(post.created_at)}</div>
+        </div>
+      `;
+      el.addEventListener('click', () => {
+        // Make sure this post is in allPosts so detail view can find it
+        if (!allPosts.find(p => p.id === post.id)) allPosts.unshift(post);
+        closeProfile(true);
+        openDetail(post.id);
+      });
+      postsList.appendChild(el);
+    });
+  }
+}
+
+// Edit button in profile header focuses bio
+profileEditBtn.addEventListener('click', () => {
+  const bioDisplay = document.getElementById('profileBioDisplay');
+  const bioEdit    = document.getElementById('profileBioEdit');
+  if (bioDisplay && bioEdit) {
+    bioDisplay.classList.add('hidden');
+    bioEdit.classList.remove('hidden');
+    bioEdit.focus();
+    bioEdit.setSelectionRange(bioEdit.value.length, bioEdit.value.length);
+  }
+});
+
+/* ── Swipe right to close profile ── */
+let profileSwipeStartX  = 0;
+let profileSwipeStartY  = 0;
+let profileIsSwiping    = false;
+let profileSwipeDecided = false;
+
+profileOverlay.addEventListener('touchstart', e => {
+  profileSwipeStartX  = e.touches[0].clientX;
+  profileSwipeStartY  = e.touches[0].clientY;
+  profileIsSwiping    = false;
+  profileSwipeDecided = false;
+  profileOverlay.style.transition = 'none';
+}, { passive: true });
+
+profileOverlay.addEventListener('touchmove', e => {
+  const dx = e.touches[0].clientX - profileSwipeStartX;
+  const dy = e.touches[0].clientY - profileSwipeStartY;
+  if (!profileSwipeDecided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    profileSwipeDecided = true;
+    profileIsSwiping    = dx > 0 && Math.abs(dx) > Math.abs(dy);
+  }
+  if (!profileIsSwiping) return;
+  e.preventDefault();
+  profileOverlay.style.transform = `translateX(${Math.max(0, dx)}px)`;
+}, { passive: false });
+
+profileOverlay.addEventListener('touchend', e => {
+  if (!profileSwipeDecided) return;
+  const dx            = e.changedTouches[0].clientX - profileSwipeStartX;
+  const wasSwipe      = profileIsSwiping;
+  profileSwipeDecided = false;
+  profileIsSwiping    = false;
+  if (!wasSwipe) { profileOverlay.style.transition = ''; return; }
+  profileOverlay.style.transition = 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
+  if (dx > 80) {
+    profileOverlay.style.transform = 'translateX(110%)';
+    setTimeout(() => closeProfile(true), 260);
+  } else {
+    profileOverlay.style.transform = '';
+    setTimeout(() => { profileOverlay.style.transition = ''; }, 300);
+  }
+}, { passive: true });
 
 /* ═══════════════════════════════════════
    iOS SAFARI — PREVENT INPUT ZOOM
