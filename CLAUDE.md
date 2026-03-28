@@ -8,7 +8,6 @@
 ## 🧠 Memory & Strategy
 
 - **Read First:** Always check `DECISIONS.md` before starting any task. It tells you the current state of the project, what has been decided, and what is still open.
-- **Read the transcript** if referenced — full conversation history is at `/mnt/transcripts/`. Check `journal.txt` there for a catalog of past sessions.
 - **Measure Twice:** For any change touching more than one file, propose a brief plan and wait for an explicit "go" before writing code.
 - **Ask Before Pivoting:** If a new request seems to contradict existing code or decisions, pause and ask: *"Are we pivoting, or extending?"*
 - **Don't Assume File Contents:** Read the relevant files before editing. Only read what is necessary.
@@ -77,23 +76,23 @@ The shared emotional design goal: *a digital journal you share with your closest
 
 ---
 
-## 💡 Interaction Patterns (Shipped as of v3.5)
+## 💡 Interaction Patterns (Shipped as of v4.0)
 
-- **Auth:** Full-screen login/signup overlay. Email + password. Display name in user_metadata.username.
-- **Posting-as chip:** Read-only, shows logged-in user.
-- **Post Detail View:** Slides in from right. Swipe right to dismiss.
-- **Upvote / Downvote:** Simple counters. Haptic feedback on mobile.
-- **Comments:** Flat list. Posted under logged-in display name.
-- **Multi-photo upload:** Unlimited photos per post. Parallel Cloudinary uploads. Feed shows first image + "+N more" badge. Detail shows first big + thumbnail row.
-- **Composer image preview:** Thumbnails shown before posting.
-- **Auto-hyperlinks:** URLs in post text auto-linked. Open in new tab.
-- **Profile view:** Tap avatar/username → profile overlay. Shows post count, member since, bio. Own profile has bio edit.
-- **Settings modal:** Display name edit, logout, install instructions. Locks body scroll.
-- **PWA:** Network-first service worker. Cache versioned to match app version.
-- **Touch zoom:** Disabled globally. Re-enabled in image modal. All inputs at font-size 16px.
-- **iOS photo picker:** File input wrapped in label for reliable iOS trigger.
-- **Accessibility:** ARIA roles, labels, alt text on all images, WCAG AA color contrast, main landmark, non-blocking fonts.
-- **robots.txt:** Disallows all crawlers (private app).
+- **Auth:** Full-screen login/signup overlay. Email + password, email verification. Display name stored in `profiles` table (Supabase), frozen at post time. `user_id` UUID is immutable identity.
+- **Post Detail View:** Slides in from right. Swipe right to dismiss. Body scroll locked while open.
+- **Radial FAB:** Bottom-right corner. Red floating button fans out 3 options (Text/pencil, Photo/camera, Location/pin) in an arc toward screen center (upper-left). Backdrop tap closes. Haptic on open.
+- **Post Sheet:** Bottom sheet with Cancel/Post header, handle bar, char counter (300). Text mode focuses textarea. Photo mode triggers file picker immediately. Location mode auto-fetches via Nominatim.
+- **Votes:** Per-user, one vote per post, mutual exclusivity (up cancels down and vice versa). Toggle same type to remove. Active vote highlighted (up=red, down=slate). Stored in `votes` table.
+- **Emoji Reactions:** 16-emoji curated picker (❤️🔥😂😮😢😡🎉👀😍🙌💯🫶✨💀🤣😭). Floating above trigger. Per user per emoji per post. Badge display on feed cards.
+- **Reaction Breakdown:** "See who reacted ▾" in post detail. Expands to show each reaction/vote with the display names of users who did it.
+- **Post Edit:** Owner-only. Text field only (images and location not editable). Accessed from detail view.
+- **Post Delete:** Owner or moderator (`cstewch@gmail.com`). Accessed from detail view. Confirmation dialog.
+- **Comments:** Flat list in post detail. Posted under logged-in display name. Realtime via postgres_changes.
+- **User Filter:** Tap username → filter feed to that user's posts. Banner with "✕ All posts" to clear.
+- **Image Modal:** Fullscreen on tap. Body scroll locked while open.
+- **Settings modal:** Display name edit, logout, PWA install instructions. Body scroll locked while open.
+- **PWA:** manifest.json + service worker. Installable on iOS via Safari Share → Add to Home Screen.
+- **Realtime:** posts, votes, reactions channels via Supabase postgres_changes. Comments subscribed per-post while detail is open.
 
 ---
 
@@ -108,13 +107,12 @@ The shared emotional design goal: *a digital journal you share with your closest
 
 ## 🚫 Parking Lot (Do Not Build Yet)
 
-- Radial / fan-out post button
-- Emotion reactions (❤️ 😄 😢)
 - Avatar photo uploads
 - Invite code gate
 - Music sharing
 - Dark mode
-- Post deletion / editing
 - Threaded comments
-- Per-user vote tracking
-- Family Path Supabase migration (blocked by free tier)
+- Multi-photo upload (was in prior docs but not in current code)
+- Profile view overlay (was in prior docs but not in current code)
+- Auto-hyperlink URLs in post text
+- Family Path Supabase migration (needs separate project)
