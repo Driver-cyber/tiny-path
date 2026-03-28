@@ -12,7 +12,7 @@
 
 **Vibe:** "Warm & Considered." Utility first, beauty close behind. Ship, learn, iterate.
 
-**Current Version:** v4.2 · 2026-03-28
+**Current Version:** v4.3 · 2026-03-28
 
 | App | URL | Backend |
 |---|---|---|
@@ -215,23 +215,29 @@ These were discussed and ranked by the user. Build in this order:
 - **Vote/reaction error handling** — `castVote` and `toggleReaction` now surface errors via a toast notification instead of silently failing.
 - **Version bump:** `tinypath-v4.2` in sw.js
 
-**Next session — do these first (blockers for sharing with users):**
-1. **Set up Resend SMTP** — connect custom domain email to Supabase so auth emails don't hit rate limits. Steps: sign up at resend.com → add domain → get DNS records → verify → create API key → Supabase Auth → SMTP Settings (host: smtp.resend.com, port: 465, user: resend, password: API key)
-2. **Set Supabase Auth redirect URL** — Supabase → Auth → URL Configuration → Site URL + Redirect URLs → `https://tiny-path.pages.dev`
-3. **Merge dev → main** — triggers production deploy on Cloudflare Pages
+### [2026-03-28] — Avatar photos, circular crop, pan fix, zoom lock (v4.3)
+- **Avatar photo upload** — own profile gains a red camera badge on the big avatar circle. Tapping opens a circular crop tool (260px circle preview). Output: 400×400 JPEG uploaded to Cloudinary, saved to `profiles.avatar_url`.
+- **Initials editing** — own profile shows an "Initials" row (1–3 chars, text input + Save). Saved to `profiles.avatar_initials`. Falls back to first letter of display name.
+- **"Use initials" button** — appears when a photo is set; clears `avatar_url` and reverts to text.
+- **Feed + detail avatars** — `loadPosts()` now fetches profiles for all posters in parallel. Feed cards and detail view render photo avatars when set, initials otherwise. `allProfiles` map caches this data.
+- **Crop tool: pan when zoomed out** — `clampCropOffset` changed from `Math.max(0, ...)` to `Math.abs(...)` so the image can be dragged in any direction even when smaller than the crop window.
+- **Crop tool: avatar mode** — `openCropModal(file, onConfirm, mode)` accepts `'cover'` or `'avatar'`. Avatar mode adds `.crop-modal--avatar` class: square circular window, 400×400 canvas output.
+- **Viewport zoom lock** — viewport meta `maximum-scale=1, user-scalable=no`; CSS `overflow-x: hidden` + `touch-action: pan-y` on body; JS blocks `gesturestart`/`gesturechange` and multi-touch `touchmove` at document level.
+- **iOS input zoom fix** — global `input, textarea, select { font-size: 16px }` rule prevents iOS auto-zoom on input focus.
+- **DB change:** `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url text; ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_initials text;`
+- **Version bump:** `tinypath-v4.3` in sw.js
 
-**Next features to consider (after launch):**
+**Status:** All changes on `dev` branch, tested on preview URL. Merge dev → main when ready.
+
+**Next features to consider:**
 - Notification / unread indicator for new posts
 - Family Path Supabase migration
-- Multi-photo upload
-- Profile view (tap avatar → overlay with posts + bio)
 - Post deletion confirmation UI improvement (replace `confirm()` dialog)
 
 ---
 
 ## 💡 Parking Lot (Explicitly Deferred)
 
-- Avatar photo uploads
 - Invite code gate
 - Music sharing
 - Dark mode
