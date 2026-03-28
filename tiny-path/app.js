@@ -218,7 +218,13 @@ authForm.addEventListener('submit', async e => {
       sentEmailDisplay.textContent = email;
       showScreen('checkemail');
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out — check your connection and try again.')), 15000)
+      );
+      const { error } = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        timeout
+      ]);
       if (error) throw error;
     }
   } catch (err) {
