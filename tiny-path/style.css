@@ -378,13 +378,14 @@ body {
 }
 
 /* =========================
-   POST ACTIONS (VOTES)
+   POST ACTIONS (VOTES + REACTIONS)
 ========================= */
 
 .post-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid #f0f0f0;
@@ -394,15 +395,16 @@ body {
   background: #f7f4f2;
   border: 1px solid #ece8e5;
   border-radius: 20px;
-  padding: 6px 14px;
+  padding: 6px 12px;
   font-size: 13px;
   cursor: pointer;
   font-family: 'Inter', sans-serif;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.15s, transform 0.1s, color 0.15s, border-color 0.15s;
   display: flex;
   align-items: center;
   gap: 5px;
   color: #555;
+  flex-shrink: 0;
 }
 
 .vote-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
@@ -410,6 +412,60 @@ body {
 .vote-btn:active { transform: scale(0.95); }
 
 .vote-count { font-weight: 600; font-size: 13px; }
+
+/* Active / selected vote states */
+.vote-btn.vote-up   { color: #c0392b; border-color: #c0392b; background: #fef0f0; }
+.vote-btn.vote-down { color: #2c3e50; border-color: #a0aab4; background: #f0f2f4; }
+
+/* Emoji trigger button */
+.emoji-trigger-btn {
+  background: #f7f4f2;
+  border: 1px solid #ece8e5;
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.emoji-trigger-btn:hover  { background: #eee9e5; }
+.emoji-trigger-btn:active { transform: scale(0.92); }
+
+/* Reaction badges row */
+.reaction-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.reaction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #f7f4f2;
+  border: 1px solid #ece8e5;
+  border-radius: 14px;
+  padding: 3px 8px 3px 6px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: default;
+}
+
+.reaction-badge.user-reacted {
+  background: #fef0f0;
+  border-color: #e8a89e;
+}
+
+.reaction-badge-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #777;
+  font-family: 'Inter', sans-serif;
+}
 
 .comment-hint {
   font-size: 13px;
@@ -421,10 +477,52 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .comment-hint svg { width: 14px; height: 14px; }
 .comment-hint:hover { color: #c0392b; }
+
+/* =========================
+   EMOJI PICKER
+========================= */
+
+.emoji-picker {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  z-index: 9000;
+  visibility: hidden;
+}
+
+.emoji-picker.positioned {
+  visibility: visible;
+  animation: fadeSlideIn 0.15s ease;
+}
+
+.emoji-option {
+  background: none;
+  border: none;
+  padding: 6px 4px;
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.1s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  line-height: 1;
+  text-align: center;
+}
+
+.emoji-option:hover  { background: #f4f1ee; }
+.emoji-option:active { transform: scale(0.88); }
+.emoji-option.emoji-selected { background: #fef0f0; }
 
 /* =========================
    FAB — BACKDROP
@@ -446,10 +544,10 @@ body {
 
 .fab-container {
   position: fixed;
-  /* Anchor point is the center of the FAB */
-  bottom: calc(max(28px, env(safe-area-inset-bottom)) + 28px);
-  left: 50%;
-  /* Container is 0×0 — everything positioned relative to this point */
+  /* Anchor point at bottom-right */
+  bottom: calc(max(24px, env(safe-area-inset-bottom)) + 24px);
+  right: calc(max(24px, env(safe-area-inset-right)) + 16px);
+  /* 0×0 anchor — everything positioned relative to this point */
   width: 0;
   height: 0;
   z-index: 600;
@@ -527,26 +625,32 @@ body {
 
 .radial-btn:active { opacity: 0.8; }
 
-/* Open state — fan out above the FAB */
-/* #1 radialLocation → upper-left (135°) */
+/*
+  Fan from bottom-right corner toward screen center (upper-left).
+  Buttons sweep from "almost straight up" through the diagonal to "almost straight left".
+  Order: Location(1)=up, Photo(2)=diagonal, Text(3)=left.
+  Delays: Text first (0s) → Photo (0.04s) → Location last (0.08s).
+*/
+
+/* #1 radialLocation → almost straight up */
 .fab-container.open .radial-btn:nth-child(1) {
-  transform: translate(-82px, -82px) scale(1);
+  transform: translate(-15px, -112px) scale(1);
   opacity: 1;
-  transition-delay: 0s;
+  transition-delay: 0.08s;
 }
 
-/* #2 radialPhoto → straight up (90°) */
+/* #2 radialPhoto → upper-left diagonal */
 .fab-container.open .radial-btn:nth-child(2) {
-  transform: translate(0, -116px) scale(1);
+  transform: translate(-84px, -84px) scale(1);
   opacity: 1;
   transition-delay: 0.04s;
 }
 
-/* #3 radialText → upper-right (45°) */
+/* #3 radialText → almost straight left */
 .fab-container.open .radial-btn:nth-child(3) {
-  transform: translate(82px, -82px) scale(1);
+  transform: translate(-112px, -15px) scale(1);
   opacity: 1;
-  transition-delay: 0.08s;
+  transition-delay: 0s;
 }
 
 /* =========================
@@ -743,11 +847,64 @@ body {
 
 .detail-votes {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid #f0f0f0;
 }
+
+/* =========================
+   REACTION BREAKDOWN (DETAIL VIEW)
+========================= */
+
+.reactions-breakdown {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.reactions-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  width: 100%;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reactions-toggle-summary {
+  font-size: 14px;
+  color: #555;
+}
+
+.reactions-toggle-label {
+  font-size: 12px;
+  color: #bbb;
+  white-space: nowrap;
+}
+
+.reactions-detail { margin-top: 8px; }
+.reactions-detail.hidden { display: none; }
+
+.reaction-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid #f8f8f8;
+  font-size: 14px;
+}
+
+.reaction-row:last-child { border-bottom: none; }
+.reaction-row-emoji { font-size: 17px; flex-shrink: 0; }
+.reaction-row-names { color: #666; line-height: 1.4; }
 
 /* =========================
    OWNER ACTIONS (EDIT / DELETE)

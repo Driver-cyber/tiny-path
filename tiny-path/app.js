@@ -11,6 +11,8 @@ const CLOUD_NAME        = 'dqqml8dae';
 const UPLOAD_PRESET     = 'tiny-path-unsigned';
 const CHAR_LIMIT        = 300;
 
+const EMOJIS = ['❤️','🔥','😂','😮','😢','😡','🎉','👀','😍','🙌','💯','🫶','✨','💀','🤣','😭'];
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ═══════════════════════════════════════
@@ -33,12 +35,16 @@ const ICON = {
 let currentUser         = null;
 let currentProfile      = null;
 let allPosts            = [];
+let allVotes            = [];
+let allReactions        = [];
 let filterUserId        = null;
 let filterDisplayName   = null;
 let currentDetailPostId = null;
 let currentDetailPost   = null;
 let postsChannel        = null;
 let commentsChannel     = null;
+let votesChannel        = null;
+let reactionsChannel    = null;
 let allComments         = [];
 let appInitialized      = false;
 
@@ -47,6 +53,10 @@ let fabOpen             = false;
 let sheetMode           = null;   // 'text' | 'photo' | 'location'
 let sheetImageFile      = null;
 let sheetLocation       = null;
+
+// Emoji picker state
+let emojiPickerPostId   = null;
+let emojiPickerEl       = null;
 
 /* ═══════════════════════════════════════
    DOM REFS — AUTH
@@ -259,27 +269,32 @@ function initApp() {
   settingsEmail.textContent = currentUser.email;
   settingsDisplayName.value = currentProfile.display_name;
 
-  subscribePostsRealtime();
+  subscribeRealtime();
   loadPosts();
 
   const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = navigator.standalone === true;
   if (isIOS && !isStandalone && !sessionStorage.getItem('installShown')) {
     sessionStorage.setItem('installShown', '1');
-    setTimeout(() => settingsModal.classList.remove('hidden'), 1800);
+    setTimeout(() => openSettingsModal(), 1800);
   }
 }
 
 function teardownApp() {
   appInitialized = false;
-  if (postsChannel)    { supabase.removeChannel(postsChannel);    postsChannel    = null; }
-  if (commentsChannel) { supabase.removeChannel(commentsChannel); commentsChannel = null; }
-  allPosts    = [];
-  allComments = [];
+  if (postsChannel)     { supabase.removeChannel(postsChannel);     postsChannel     = null; }
+  if (commentsChannel)  { supabase.removeChannel(commentsChannel);  commentsChannel  = null; }
+  if (votesChannel)     { supabase.removeChannel(votesChannel);     votesChannel     = null; }
+  if (reactionsChannel) { supabase.removeChannel(reactionsChannel); reactionsChannel = null; }
+  allPosts     = [];
+  allComments  = [];
+  allVotes     = [];
+  allReactions = [];
   feed.innerHTML = '';
   closeDetail(true);
   closeFab();
   closeSheet();
+  closeEmojiPicker();
 }
 
 /* ═══════════════════════════════════════
@@ -287,16 +302,19 @@ function teardownApp() {
 ═══════════════════════════════════════ */
 
 async function loadPosts() {
-  const { data } = await supabase
-    .from('posts')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const [postsRes, votesRes, reactionsRes] = await Promise.all([
+    supabase.from('posts').select('*').order('created_at', { ascending: false }),
+    supabase.from('votes').select('*'),
+    supabase.from('reactions').select('*')
+  ]);
 
-  allPosts = data || [];
+  allPosts     = postsRes.data     || [];
+  allVotes     = votesRes.data     || [];
+  allReactions = reactionsRes.data || [];
   renderFeed();
 }
 
-function subscribePostsRealtime() {
+function subscribeRealtime() {
   postsChannel = supabase
     .channel('public:posts')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' },
@@ -321,6 +339,195 @@ function subscribePostsRealtime() {
         if (currentDetailPostId === post.id) closeDetail(true);
       })
     .subscribe();
+
+  votesChannel = supabase
+    .channel('public:votes')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'votes' },
+      ({ new: vote }) => {
+        if (!allVotes.find(v => v.id === vote.id)) allVotes.push(vote);
+        refreshVoteReactionUI(vote.post_id);
+      })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'votes' },
+      ({ new: vote }) => {
+        const idx = allVotes.findIndex(v => v.id === vote.id);
+        if (idx !== -1) allVotes[idx] = vote; else allVotes.push(vote);
+        refreshVoteReactionUI(vote.post_id);
+      })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'votes' },
+      ({ old: vote }) => {
+        const existing = allVotes.find(v => v.id === vote.id);
+        const postId = existing?.post_id || vote.post_id;
+        allVotes = allVotes.filter(v => v.id !== vote.id);
+        if (postId) refreshVoteReactionUI(postId);
+      })
+    .subscribe();
+
+  reactionsChannel = supabase
+    .channel('public:reactions')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reactions' },
+      ({ new: reaction }) => {
+        if (!allReactions.find(r => r.id === reaction.id)) allReactions.push(reaction);
+        refreshVoteReactionUI(reaction.post_id);
+      })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'reactions' },
+      ({ old: reaction }) => {
+        const existing = allReactions.find(r => r.id === reaction.id);
+        const postId = existing?.post_id || reaction.post_id;
+        allReactions = allReactions.filter(r => r.id !== reaction.id);
+        if (postId) refreshVoteReactionUI(postId);
+      })
+    .subscribe();
+}
+
+function refreshVoteReactionUI(postId) {
+  // Update the actions row on the feed card without rebuilding the whole feed
+  const postEl = feed.querySelector(`[data-id="${postId}"]`);
+  if (postEl) {
+    const post = allPosts.find(p => p.id === postId);
+    if (post) updatePostActionsEl(postEl, post);
+  }
+  // Refresh detail view if open on this post
+  if (currentDetailPostId === postId) {
+    const post = allPosts.find(p => p.id === postId);
+    if (post) renderDetailBody(post);
+  }
+}
+
+/* ═══════════════════════════════════════
+   VOTES + REACTIONS — HELPERS
+═══════════════════════════════════════ */
+
+function getVoteCount(postId, type) {
+  return allVotes.filter(v => v.post_id === postId && v.vote_type === type).length;
+}
+
+function getUserVote(postId) {
+  if (!currentUser) return null;
+  return allVotes.find(v => v.post_id === postId && v.user_id === currentUser.id) || null;
+}
+
+function getPostReactions(postId) {
+  return allReactions.filter(r => r.post_id === postId);
+}
+
+function hasUserReacted(postId, emoji) {
+  if (!currentUser) return false;
+  return allReactions.some(r => r.post_id === postId && r.user_id === currentUser.id && r.emoji === emoji);
+}
+
+function reactionBadgesHtml(postId, userReacted = false) {
+  const map = {};
+  getPostReactions(postId).forEach(r => { map[r.emoji] = (map[r.emoji] || 0) + 1; });
+  return Object.entries(map)
+    .map(([emoji, count]) => {
+      const mine = userReacted && hasUserReacted(postId, emoji);
+      return `<span class="reaction-badge${mine ? ' user-reacted' : ''}">${emoji}<span class="reaction-badge-count">${count}</span></span>`;
+    })
+    .join('');
+}
+
+async function castVote(postId, type) {
+  if (navigator.vibrate) navigator.vibrate(12);
+  const existing = getUserVote(postId);
+
+  if (existing) {
+    if (existing.vote_type === type) {
+      // Toggle off — delete
+      const { error } = await supabase.from('votes').delete().eq('id', existing.id);
+      if (!error) allVotes = allVotes.filter(v => v.id !== existing.id);
+    } else {
+      // Switch up ↔ down
+      const { data, error } = await supabase
+        .from('votes').update({ vote_type: type }).eq('id', existing.id).select().single();
+      if (!error && data) {
+        const idx = allVotes.findIndex(v => v.id === existing.id);
+        if (idx !== -1) allVotes[idx] = data;
+      }
+    }
+  } else {
+    const { data, error } = await supabase.from('votes').insert({
+      post_id: postId, user_id: currentUser.id,
+      display_name: currentProfile.display_name, vote_type: type
+    }).select().single();
+    if (!error && data) allVotes.push(data);
+  }
+
+  refreshVoteReactionUI(postId);
+}
+
+async function toggleReaction(postId, emoji) {
+  if (navigator.vibrate) navigator.vibrate(8);
+  const existing = allReactions.find(
+    r => r.post_id === postId && r.user_id === currentUser.id && r.emoji === emoji
+  );
+
+  if (existing) {
+    const { error } = await supabase.from('reactions').delete().eq('id', existing.id);
+    if (!error) allReactions = allReactions.filter(r => r.id !== existing.id);
+  } else {
+    const { data, error } = await supabase.from('reactions').insert({
+      post_id: postId, user_id: currentUser.id,
+      display_name: currentProfile.display_name, emoji
+    }).select().single();
+    if (!error && data) allReactions.push(data);
+  }
+
+  refreshVoteReactionUI(postId);
+}
+
+/* ═══════════════════════════════════════
+   EMOJI PICKER
+═══════════════════════════════════════ */
+
+function openEmojiPicker(postId, anchorEl) {
+  closeEmojiPicker();
+  emojiPickerPostId = postId;
+
+  const picker = document.createElement('div');
+  picker.className = 'emoji-picker';
+  picker.innerHTML = EMOJIS.map(e =>
+    `<button class="emoji-option${hasUserReacted(postId, e) ? ' emoji-selected' : ''}" data-emoji="${e}">${e}</button>`
+  ).join('');
+
+  picker.querySelectorAll('.emoji-option').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleReaction(postId, btn.dataset.emoji);
+      closeEmojiPicker();
+    });
+  });
+
+  document.body.appendChild(picker);
+  emojiPickerEl = picker;
+
+  requestAnimationFrame(() => {
+    const rect = anchorEl.getBoundingClientRect();
+    const pw   = picker.offsetWidth;
+    const ph   = picker.offsetHeight;
+    let left   = rect.left + rect.width / 2 - pw / 2;
+    let top    = rect.top - ph - 8;
+    left = Math.max(8, Math.min(window.innerWidth - pw - 8, left));
+    top  = Math.max(8, top);
+    picker.style.left = left + 'px';
+    picker.style.top  = top  + 'px';
+    picker.classList.add('positioned');
+  });
+
+  setTimeout(() => {
+    document.addEventListener('click', handlePickerOutsideClick, { capture: true });
+  }, 0);
+}
+
+function handlePickerOutsideClick(e) {
+  if (emojiPickerEl && !emojiPickerEl.contains(e.target)) {
+    closeEmojiPicker();
+  }
+}
+
+function closeEmojiPicker() {
+  if (emojiPickerEl) { emojiPickerEl.remove(); emojiPickerEl = null; }
+  emojiPickerPostId = null;
+  document.removeEventListener('click', handlePickerOutsideClick, { capture: true });
 }
 
 /* ═══════════════════════════════════════
@@ -354,6 +561,52 @@ function dayLabel(tsStr) {
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/* ═══════════════════════════════════════
+   BUILD POST ACTIONS HTML
+═══════════════════════════════════════ */
+
+function buildPostActionsHtml(post) {
+  const upCount   = getVoteCount(post.id, 'up');
+  const downCount = getVoteCount(post.id, 'down');
+  const userVote  = getUserVote(post.id);
+  const badges    = reactionBadgesHtml(post.id, true);
+
+  return `
+    <div class="post-actions">
+      <button class="vote-btn upvote-btn${userVote?.vote_type === 'up' ? ' vote-active vote-up' : ''}">${ICON.thumbsUp} <span class="vote-count">${upCount}</span></button>
+      <button class="vote-btn downvote-btn${userVote?.vote_type === 'down' ? ' vote-active vote-down' : ''}">${ICON.thumbsDown} <span class="vote-count">${downCount}</span></button>
+      <button class="emoji-trigger-btn" aria-label="Add reaction">😊</button>
+      ${badges ? `<div class="reaction-badges">${badges}</div>` : ''}
+      <span class="comment-hint post-tap">${ICON.comment} Comments</span>
+    </div>
+  `;
+}
+
+function bindPostActionsListeners(container, post) {
+  container.querySelector('.upvote-btn').addEventListener('click', e => {
+    e.stopPropagation(); castVote(post.id, 'up');
+  });
+  container.querySelector('.downvote-btn').addEventListener('click', e => {
+    e.stopPropagation(); castVote(post.id, 'down');
+  });
+  container.querySelector('.emoji-trigger-btn').addEventListener('click', e => {
+    e.stopPropagation(); openEmojiPicker(post.id, e.currentTarget);
+  });
+  container.querySelectorAll('.post-tap').forEach(el => {
+    el.addEventListener('click', e => { e.stopPropagation(); openDetail(post.id); });
+  });
+}
+
+function updatePostActionsEl(postEl, post) {
+  const existing = postEl.querySelector('.post-actions');
+  if (!existing) return;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = buildPostActionsHtml(post);
+  const newActions = tmp.querySelector('.post-actions');
+  existing.replaceWith(newActions);
+  bindPostActionsListeners(postEl, post);
 }
 
 /* ═══════════════════════════════════════
@@ -399,46 +652,22 @@ function renderFeed() {
       ${post.location  ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ''}
       ${post.text      ? `<div class="text post-tap">${esc(post.text)}</div>` : ''}
       ${post.image_url ? `<img src="${esc(post.image_url)}" class="post-image" loading="lazy" />` : ''}
-      <div class="post-actions">
-        <button class="vote-btn upvote-btn">${ICON.thumbsUp} <span class="vote-count">${post.upvotes || 0}</span></button>
-        <button class="vote-btn downvote-btn">${ICON.thumbsDown} <span class="vote-count">${post.downvotes || 0}</span></button>
-        <span class="comment-hint post-tap">${ICON.comment} Comments</span>
-      </div>
+      ${buildPostActionsHtml(post)}
     `;
 
     if (post.image_url) {
       postEl.querySelector('.post-image').addEventListener('click', e => {
         e.stopPropagation();
-        modalImage.src = post.image_url;
-        imageModal.classList.remove('hidden');
+        openImageModal(post.image_url);
       });
     }
-
-    postEl.querySelectorAll('.post-tap').forEach(el => {
-      el.addEventListener('click', e => {
-        e.stopPropagation();
-        openDetail(post.id);
-      });
-    });
-
-    postEl.querySelector('.upvote-btn').addEventListener('click', e => {
-      e.stopPropagation();
-      if (navigator.vibrate) navigator.vibrate(12);
-      const p = allPosts.find(x => x.id === post.id);
-      if (p) supabase.from('posts').update({ upvotes: p.upvotes + 1 }).eq('id', post.id);
-    });
-
-    postEl.querySelector('.downvote-btn').addEventListener('click', e => {
-      e.stopPropagation();
-      if (navigator.vibrate) navigator.vibrate(12);
-      const p = allPosts.find(x => x.id === post.id);
-      if (p) supabase.from('posts').update({ downvotes: p.downvotes + 1 }).eq('id', post.id);
-    });
 
     postEl.querySelector('.filter-link').addEventListener('click', e => {
       e.stopPropagation();
       setFilter(post.user_id, post.display_name);
     });
+
+    bindPostActionsListeners(postEl, post);
 
     feed.appendChild(postEl);
   });
@@ -490,20 +719,9 @@ function closeFab() {
    FAB — RADIAL BUTTONS
 ═══════════════════════════════════════ */
 
-radialText.addEventListener('click', () => {
-  closeFab();
-  openSheet('text');
-});
-
-radialPhoto.addEventListener('click', () => {
-  closeFab();
-  openSheet('photo');
-});
-
-radialLocation.addEventListener('click', () => {
-  closeFab();
-  openSheet('location');
-});
+radialText.addEventListener('click', () => { closeFab(); openSheet('text'); });
+radialPhoto.addEventListener('click', () => { closeFab(); openSheet('photo'); });
+radialLocation.addEventListener('click', () => { closeFab(); openSheet('location'); });
 
 /* ═══════════════════════════════════════
    POST SHEET — OPEN / CLOSE
@@ -514,8 +732,7 @@ function openSheet(mode) {
   sheetImageFile = null;
   sheetLocation  = null;
 
-  // Reset sheet state
-  sheetTextInput.value      = '';
+  sheetTextInput.value         = '';
   sheetCharCounter.textContent = `0 / ${CHAR_LIMIT}`;
   sheetCharCounter.classList.remove('char-near', 'char-over');
   sheetPhotoArea.classList.add('hidden');
@@ -569,8 +786,8 @@ sheetTextInput.addEventListener('input', () => {
 });
 
 function updateSheetSubmitState() {
-  const hasText  = sheetTextInput.value.trim().length > 0;
-  const hasPhoto = !!sheetImageFile;
+  const hasText     = sheetTextInput.value.trim().length > 0;
+  const hasPhoto    = !!sheetImageFile;
   const hasLocation = !!sheetLocation;
 
   if (sheetMode === 'text')     sheetSubmit.disabled = !hasText;
@@ -585,10 +802,8 @@ function updateSheetSubmitState() {
 sheetImageInput.addEventListener('change', () => {
   const file = sheetImageInput.files[0];
   if (!file) return;
-
   sheetImageFile = file;
-  const url = URL.createObjectURL(file);
-  sheetPhotoPreview.src = url;
+  sheetPhotoPreview.src = URL.createObjectURL(file);
   sheetPhotoArea.classList.remove('hidden');
   updateSheetSubmitState();
 });
@@ -726,6 +941,39 @@ function renderDetailBody(post) {
   const firstLetter = (post.display_name || '?').charAt(0).toUpperCase();
   const editedLabel = post.edited_at ? '<span class="edited-label">· edited</span>' : '';
 
+  const upCount   = getVoteCount(post.id, 'up');
+  const downCount = getVoteCount(post.id, 'down');
+  const userVote  = getUserVote(post.id);
+  const badges    = reactionBadgesHtml(post.id, true);
+
+  // Build reaction breakdown
+  const upVoters   = allVotes.filter(v => v.post_id === post.id && v.vote_type === 'up').map(v => v.display_name || 'Someone');
+  const downVoters = allVotes.filter(v => v.post_id === post.id && v.vote_type === 'down').map(v => v.display_name || 'Someone');
+  const emojiMap   = {};
+  getPostReactions(post.id).forEach(r => {
+    if (!emojiMap[r.emoji]) emojiMap[r.emoji] = [];
+    emojiMap[r.emoji].push(r.display_name || 'Someone');
+  });
+
+  const hasActivity = upVoters.length > 0 || downVoters.length > 0 || Object.keys(emojiMap).length > 0;
+  const breakdownHtml = hasActivity ? `
+    <div class="reactions-breakdown">
+      <button class="reactions-toggle">
+        <span class="reactions-toggle-summary">${[
+          upVoters.length   > 0 ? `👍 ${upVoters.length}`   : '',
+          downVoters.length > 0 ? `👎 ${downVoters.length}` : '',
+          ...Object.entries(emojiMap).map(([e, n]) => `${e} ${n.length}`)
+        ].filter(Boolean).join('  ')}</span>
+        <span class="reactions-toggle-label">See who reacted ▾</span>
+      </button>
+      <div class="reactions-detail hidden">
+        ${upVoters.length > 0 ? `<div class="reaction-row"><span class="reaction-row-emoji">👍</span><span class="reaction-row-names">${esc(upVoters.join(', '))}</span></div>` : ''}
+        ${downVoters.length > 0 ? `<div class="reaction-row"><span class="reaction-row-emoji">👎</span><span class="reaction-row-names">${esc(downVoters.join(', '))}</span></div>` : ''}
+        ${Object.entries(emojiMap).map(([e, names]) => `<div class="reaction-row"><span class="reaction-row-emoji">${e}</span><span class="reaction-row-names">${esc(names.join(', '))}</span></div>`).join('')}
+      </div>
+    </div>
+  ` : '';
+
   detailBody.innerHTML = `
     <div class="detail-post">
       <div class="post-header">
@@ -745,32 +993,38 @@ function renderDetailBody(post) {
       ${post.text      ? `<div class="text">${esc(post.text)}</div>` : ''}
       ${post.image_url ? `<img src="${esc(post.image_url)}" class="detail-image" />` : ''}
       <div class="detail-votes">
-        <button class="vote-btn detail-upvote">${ICON.thumbsUp} <span>${post.upvotes || 0}</span></button>
-        <button class="vote-btn detail-downvote">${ICON.thumbsDown} <span>${post.downvotes || 0}</span></button>
+        <button class="vote-btn detail-upvote${userVote?.vote_type === 'up'   ? ' vote-active vote-up'   : ''}">${ICON.thumbsUp}   <span>${upCount}</span></button>
+        <button class="vote-btn detail-downvote${userVote?.vote_type === 'down' ? ' vote-active vote-down' : ''}">${ICON.thumbsDown} <span>${downCount}</span></button>
+        <button class="emoji-trigger-btn" aria-label="Add reaction">😊</button>
+        ${badges ? `<div class="reaction-badges">${badges}</div>` : ''}
         <button class="vote-btn share-btn">${ICON.share} Share</button>
       </div>
+      ${breakdownHtml}
     </div>
   `;
 
   if (canEdit)   detailBody.querySelector('.edit-btn').addEventListener('click', () => renderDetailBodyEdit(post));
   if (canDelete) detailBody.querySelector('.delete-btn').addEventListener('click', () => deletePost(post.id));
 
-  detailBody.querySelector('.detail-upvote').addEventListener('click', () => {
-    if (navigator.vibrate) navigator.vibrate(12);
-    const p = allPosts.find(x => x.id === post.id);
-    if (p) supabase.from('posts').update({ upvotes: p.upvotes + 1 }).eq('id', post.id);
-  });
-  detailBody.querySelector('.detail-downvote').addEventListener('click', () => {
-    if (navigator.vibrate) navigator.vibrate(12);
-    const p = allPosts.find(x => x.id === post.id);
-    if (p) supabase.from('posts').update({ downvotes: p.downvotes + 1 }).eq('id', post.id);
-  });
+  detailBody.querySelector('.detail-upvote').addEventListener('click', () => castVote(post.id, 'up'));
+  detailBody.querySelector('.detail-downvote').addEventListener('click', () => castVote(post.id, 'down'));
+  detailBody.querySelector('.emoji-trigger-btn').addEventListener('click', e => openEmojiPicker(post.id, e.currentTarget));
+
+  if (hasActivity) {
+    const toggle = detailBody.querySelector('.reactions-toggle');
+    const detail = detailBody.querySelector('.reactions-detail');
+    const label  = toggle.querySelector('.reactions-toggle-label');
+    toggle.addEventListener('click', () => {
+      const open = detail.classList.toggle('hidden');
+      label.textContent = open ? 'See who reacted ▾' : 'Hide ▴';
+    });
+  }
 
   const shareBtn = detailBody.querySelector('.share-btn');
   if (navigator.share) {
     shareBtn.addEventListener('click', async () => {
       try {
-        await navigator.share({ title: `${post.display_name} on Path`, text: post.text || '', url: window.location.href });
+        await navigator.share({ title: `${post.display_name} on Tiny Path`, text: post.text || '', url: window.location.href });
       } catch {}
     });
   } else {
@@ -778,10 +1032,7 @@ function renderDetailBody(post) {
   }
 
   if (post.image_url) {
-    detailBody.querySelector('.detail-image').addEventListener('click', () => {
-      modalImage.src = post.image_url;
-      imageModal.classList.remove('hidden');
-    });
+    detailBody.querySelector('.detail-image').addEventListener('click', () => openImageModal(post.image_url));
   }
 }
 
@@ -839,10 +1090,7 @@ function renderDetailBodyEdit(post) {
   });
 
   if (post.image_url) {
-    detailBody.querySelector('.detail-image').addEventListener('click', () => {
-      modalImage.src = post.image_url;
-      imageModal.classList.remove('hidden');
-    });
+    detailBody.querySelector('.detail-image').addEventListener('click', () => openImageModal(post.image_url));
   }
 }
 
@@ -973,13 +1221,21 @@ detailOverlay.addEventListener('touchend', e => {
    SETTINGS
 ═══════════════════════════════════════ */
 
-settingsBtn.addEventListener('click', () => {
+function openSettingsModal() {
   settingsDisplayName.value = currentProfile?.display_name || '';
   settingsModal.classList.remove('hidden');
-});
-closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSettingsModal() {
+  settingsModal.classList.add('hidden');
+  if (!currentDetailPostId) document.body.style.overflow = '';
+}
+
+settingsBtn.addEventListener('click', openSettingsModal);
+closeSettings.addEventListener('click', closeSettingsModal);
 settingsModal.addEventListener('click', e => {
-  if (e.target === settingsModal) settingsModal.classList.add('hidden');
+  if (e.target === settingsModal) closeSettingsModal();
 });
 
 saveDisplayName.addEventListener('click', async () => {
@@ -1005,9 +1261,21 @@ logoutBtn.addEventListener('click', async () => {
    IMAGE MODAL
 ═══════════════════════════════════════ */
 
-closeModal.addEventListener('click', () => imageModal.classList.add('hidden'));
+function openImageModal(src) {
+  modalImage.src = src;
+  imageModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+  imageModal.classList.add('hidden');
+  modalImage.src = '';
+  if (!currentDetailPostId) document.body.style.overflow = '';
+}
+
+closeModal.addEventListener('click', closeImageModal);
 imageModal.addEventListener('click', e => {
-  if (e.target === imageModal) imageModal.classList.add('hidden');
+  if (e.target === imageModal) closeImageModal();
 });
 
 /* ═══════════════════════════════════════
