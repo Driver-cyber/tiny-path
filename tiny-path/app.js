@@ -252,7 +252,9 @@ forgotPasswordForm.addEventListener('submit', async e => {
   forgotSubmit.textContent = 'Send reset link';
 
   if (error) {
-    forgotError.textContent = error.message;
+    forgotError.textContent = error.message.includes('rate')
+      ? 'Too many emails sent recently. Please wait a few minutes and try again.'
+      : error.message;
     forgotError.classList.remove('hidden');
     return;
   }
