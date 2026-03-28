@@ -115,6 +115,22 @@ body {
 .auth-btn:active { transform: scale(0.98); }
 .auth-btn:disabled { opacity: 0.6; cursor: default; }
 
+.auth-link-btn {
+  background: none;
+  border: none;
+  color: #bbb;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  padding: 12px 0 0;
+  text-align: center;
+  width: 100%;
+  display: block;
+  transition: color 0.15s;
+}
+
+.auth-link-btn:hover { color: #c0392b; }
+
 .auth-error {
   background: #fef0f0;
   border: 1px solid #fcc;
