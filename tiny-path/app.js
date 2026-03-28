@@ -1572,6 +1572,8 @@ function closeCropModal() {
   cropImageEl.onload = null;
   cropFile = null;
   cropOnConfirm = null;
+  cropConfirm.disabled    = false;
+  cropConfirm.textContent = 'Use this';
   // Don't restore overflow — profile overlay is still open underneath
 }
 
