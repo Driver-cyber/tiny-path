@@ -1584,6 +1584,8 @@ function getCroppedBlob() {
   const dstW       = cSrcW / srcW * canvasW;
   const dstH       = cSrcH / srcH * canvasH;
 
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvasW, canvasH);
   ctx.drawImage(cropImageEl, cSrcX, cSrcY, cSrcW, cSrcH, dstX, dstY, dstW, dstH);
 
   return new Promise(resolve => {
@@ -1635,7 +1637,7 @@ cropWindowEl.addEventListener('touchmove', e => {
     const dx   = e.touches[0].clientX - e.touches[1].clientX;
     const dy   = e.touches[0].clientY - e.touches[1].clientY;
     const dist = Math.hypot(dx, dy);
-    cropUserScale = Math.max(0.9, Math.min(5, cropPinchStartScale * dist / cropPinchStartDist));
+    cropUserScale = Math.max(0.2, Math.min(5, cropPinchStartScale * dist / cropPinchStartDist));
     clampCropOffset();
     updateCropTransform();
   }
@@ -1662,7 +1664,7 @@ window.addEventListener('mousemove', e => {
 window.addEventListener('mouseup', () => { cropPanActive = false; });
 cropWindowEl.addEventListener('wheel', e => {
   e.preventDefault();
-  cropUserScale = Math.max(0.9, Math.min(5, cropUserScale * (e.deltaY > 0 ? 0.93 : 1.07)));
+  cropUserScale = Math.max(0.2, Math.min(5, cropUserScale * (e.deltaY > 0 ? 0.93 : 1.07)));
   clampCropOffset();
   updateCropTransform();
 }, { passive: false });
