@@ -176,7 +176,10 @@ authForm.addEventListener('submit', async e => {
 
   try {
     if (authMode === 'signup') {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({
+        email, password,
+        options: { emailRedirectTo: 'https://tiny-path.pages.dev' }
+      });
       if (error) throw error;
       sentEmailDisplay.textContent = email;
       showScreen('checkemail');
