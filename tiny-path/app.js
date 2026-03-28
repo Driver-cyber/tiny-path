@@ -39,6 +39,7 @@ let currentProfile      = null;
 let allPosts            = [];
 let allVotes            = [];
 let allReactions        = [];
+let allProfiles         = {}; // userId → profile row (for avatar rendering)
 let filterUserId        = null;
 let filterDisplayName   = null;
 let currentDetailPostId = null;
@@ -80,6 +81,7 @@ let cropPanStartOY     = 0;
 let cropPinchStartDist = 0;
 let cropPinchStartScale = 1;
 let cropOnConfirm      = null;
+let cropMode           = 'cover'; // 'cover' | 'avatar'
 
 /* ═══════════════════════════════════════
    DOM REFS — AUTH
@@ -451,6 +453,7 @@ function teardownApp() {
   allComments  = [];
   allVotes     = [];
   allReactions = [];
+  allProfiles  = {};
   feed.innerHTML = '';
   closeDetail(true);
   closeProfile(true);
@@ -473,6 +476,18 @@ async function loadPosts() {
   allPosts     = postsRes.data     || [];
   allVotes     = votesRes.data     || [];
   allReactions = reactionsRes.data || [];
+
+  // Fetch profiles for all unique posters so we can render avatar photos
+  const userIds = [...new Set(allPosts.map(p => p.user_id))];
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, avatar_initials')
+      .in('id', userIds);
+    allProfiles = {};
+    (profiles || []).forEach(p => { allProfiles[p.id] = p; });
+  }
+
   renderFeed();
 }
 
@@ -569,6 +584,20 @@ function showToast(msg) {
     t.classList.remove('toast-visible');
     setTimeout(() => t.remove(), 300);
   }, 3000);
+}
+
+/* ═══════════════════════════════════════
+   AVATAR HELPER
+═══════════════════════════════════════ */
+
+// Returns the inner HTML for an avatar circle (photo img or initials text)
+function avatarInnerHtml(userId, displayName) {
+  const p = allProfiles[userId];
+  if (p?.avatar_url) {
+    return `<img class="avatar-img" src="${esc(p.avatar_url)}" alt="" />`;
+  }
+  const initials = p?.avatar_initials || (displayName || '?').charAt(0).toUpperCase();
+  return esc(initials);
 }
 
 /* ═══════════════════════════════════════
@@ -834,7 +863,6 @@ function renderFeed() {
     }
 
     const isImageOnly = !!(post.image_url && !post.text);
-    const firstLetter = (post.display_name || '?').charAt(0).toUpperCase();
 
     const postEl = document.createElement('div');
     postEl.className  = `post${isImageOnly ? ' post--image-only' : ''}`;
@@ -843,7 +871,7 @@ function renderFeed() {
     postEl.innerHTML = `
       <div class="post-header">
         <div class="post-user">
-          <div class="avatar filter-link" data-userid="${esc(post.user_id)}">${esc(firstLetter)}</div>
+          <div class="avatar filter-link" data-userid="${esc(post.user_id)}">${avatarInnerHtml(post.user_id, post.display_name)}</div>
           <div>
             <div class="username filter-link" data-userid="${esc(post.user_id)}" data-name="${esc(post.display_name)}">${esc(post.display_name)}</div>
             <div class="timestamp">${timeAgo(post.created_at)}</div>
@@ -1146,7 +1174,6 @@ function renderDetailBody(post) {
   const canEdit   = isOwner;
   const canDelete = isOwner || isMod;
 
-  const firstLetter = (post.display_name || '?').charAt(0).toUpperCase();
   const editedLabel = post.edited_at ? '<span class="edited-label">· edited</span>' : '';
 
   const upCount   = getVoteCount(post.id, 'up');
@@ -1186,7 +1213,7 @@ function renderDetailBody(post) {
     <div class="detail-post">
       <div class="post-header">
         <div class="post-user">
-          <div class="avatar filter-link" data-userid="${esc(post.user_id)}">${esc(firstLetter)}</div>
+          <div class="avatar filter-link" data-userid="${esc(post.user_id)}">${avatarInnerHtml(post.user_id, post.display_name)}</div>
           <div>
             <div class="username filter-link" data-userid="${esc(post.user_id)}">${esc(post.display_name)}</div>
             <div class="timestamp">${fullTimestamp(post.created_at)} ${editedLabel}</div>
@@ -1253,13 +1280,11 @@ function renderDetailBody(post) {
 ═══════════════════════════════════════ */
 
 function renderDetailBodyEdit(post) {
-  const firstLetter = (post.display_name || '?').charAt(0).toUpperCase();
-
   detailBody.innerHTML = `
     <div class="detail-post">
       <div class="post-header">
         <div class="post-user">
-          <div class="avatar">${esc(firstLetter)}</div>
+          <div class="avatar">${avatarInnerHtml(post.user_id, post.display_name)}</div>
           <div>
             <div class="username">${esc(post.display_name)}</div>
             <div class="timestamp">${fullTimestamp(post.created_at)}</div>
@@ -1499,9 +1524,11 @@ imageModal.addEventListener('click', e => {
    COVER PHOTO CROP TOOL
 ═══════════════════════════════════════ */
 
-function openCropModal(file, onConfirm) {
+function openCropModal(file, onConfirm, mode = 'cover') {
   cropFile      = file;
   cropOnConfirm = onConfirm;
+  cropMode      = mode;
+  cropModal.classList.toggle('crop-modal--avatar', mode === 'avatar');
   cropUserScale = 1;
   cropOffsetX   = 0;
   cropOffsetY   = 0;
@@ -1547,8 +1574,8 @@ function clampCropOffset() {
   const total    = cropFitScale * cropUserScale;
   const dispW    = cropNaturalW * total;
   const dispH    = cropNaturalH * total;
-  const maxX     = Math.max(0, (dispW - winW) / 2);
-  const maxY     = Math.max(0, (dispH - winH) / 2);
+  const maxX     = Math.abs(dispW - winW) / 2;
+  const maxY     = Math.abs(dispH - winH) / 2;
   cropOffsetX    = Math.max(-maxX, Math.min(maxX, cropOffsetX));
   cropOffsetY    = Math.max(-maxY, Math.min(maxY, cropOffsetY));
 }
@@ -1557,8 +1584,9 @@ function getCroppedBlob() {
   const winW = cropWindowEl.offsetWidth;
   const winH = cropWindowEl.offsetHeight;
   const dpr  = Math.min(window.devicePixelRatio || 2, 3);
-  const canvasW = Math.round(winW * dpr);
-  const canvasH = Math.round(winH * dpr);
+  // Avatar mode: fixed 400×400 square output regardless of window/dpr
+  const canvasW = cropMode === 'avatar' ? 400 : Math.round(winW * dpr);
+  const canvasH = cropMode === 'avatar' ? 400 : Math.round(winH * dpr);
 
   const canvas = document.createElement('canvas');
   canvas.width  = canvasW;
@@ -1734,6 +1762,8 @@ function renderProfileOverlay(userId, profile, posts) {
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : '';
 
+  const avatarInitials = profile.avatar_initials || letter;
+
   profileBody.innerHTML = `
     <div class="profile-cover-area">
       ${profile.cover_photo_url
@@ -1744,7 +1774,18 @@ function renderProfileOverlay(userId, profile, posts) {
           ${ICON.camera}
           <input type="file" id="profileCoverInput" accept="image/*" hidden />
         </label>` : ''}
-      <div class="profile-avatar-big">${esc(letter)}</div>
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar-big">
+          ${profile.avatar_url
+            ? `<img class="avatar-img" src="${esc(profile.avatar_url)}" alt="" />`
+            : esc(avatarInitials)}
+        </div>
+        ${isOwn ? `
+          <label class="profile-avatar-badge" for="profileAvatarInput" title="Change avatar photo">
+            ${ICON.camera}
+            <input type="file" id="profileAvatarInput" accept="image/*" hidden />
+          </label>` : ''}
+      </div>
     </div>
     <div class="profile-info">
       <div class="profile-name">${esc(profile.display_name)}</div>
@@ -1755,6 +1796,15 @@ function renderProfileOverlay(userId, profile, posts) {
         <textarea class="profile-bio-edit hidden" id="profileBioEdit"
           placeholder="Tell your friends a little about yourself…"
           maxlength="160">${esc(profile.bio || '')}</textarea>
+        <div class="profile-initials-row">
+          <span class="profile-initials-label">Initials</span>
+          <input class="profile-initials-input" id="profileInitialsInput" maxlength="3"
+            placeholder="${esc(letter)}" value="${esc(avatarInitials)}" />
+          <button class="profile-initials-save" id="profileInitialsSave" type="button">Save</button>
+          ${profile.avatar_url
+            ? `<button class="profile-use-initials-btn" id="profileUseInitials" type="button">Use initials</button>`
+            : ''}
+        </div>
       ` : `
         <div class="profile-bio${!profile.bio ? ' profile-bio-empty' : ''}">
           ${profile.bio ? esc(profile.bio) : 'No bio yet.'}
@@ -1846,6 +1896,108 @@ function renderProfileOverlay(userId, profile, posts) {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); bioEdit.blur(); }
       });
     }
+
+    // Avatar photo upload
+    const avatarInput = document.getElementById('profileAvatarInput');
+    if (avatarInput) {
+      avatarInput.addEventListener('change', () => {
+        const file = avatarInput.files[0];
+        if (!file) return;
+        avatarInput.value = '';
+
+        openCropModal(file, async (croppedBlob) => {
+          const badge = profileBody.querySelector('.profile-avatar-badge');
+          if (badge) badge.style.opacity = '0.4';
+
+          const formData = new FormData();
+          formData.append('file', croppedBlob, 'avatar.jpg');
+          formData.append('upload_preset', UPLOAD_PRESET);
+          const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: 'POST', body: formData
+          });
+          const data = await res.json();
+          const url  = data.secure_url;
+          if (!url) { showToast('Avatar upload failed.'); if (badge) badge.style.opacity = ''; return; }
+
+          const { error } = await supabase
+            .from('profiles').update({ avatar_url: url }).eq('id', currentUser.id);
+          if (error) { showToast('Could not save avatar.'); if (badge) badge.style.opacity = ''; return; }
+
+          // Update in-memory profile and allProfiles cache
+          currentProfile.avatar_url = url;
+          profile.avatar_url        = url;
+          if (allProfiles[currentUser.id]) allProfiles[currentUser.id].avatar_url = url;
+
+          // Refresh avatar display
+          const bigAvatar = profileBody.querySelector('.profile-avatar-big');
+          if (bigAvatar) bigAvatar.innerHTML = `<img class="avatar-img" src="${esc(url)}" alt="" />`;
+
+          // Show "Use initials" button if not already present
+          const initialsRow = document.getElementById('profileInitialsInput')?.closest('.profile-initials-row');
+          if (initialsRow && !document.getElementById('profileUseInitials')) {
+            const btn = document.createElement('button');
+            btn.className = 'profile-use-initials-btn';
+            btn.id        = 'profileUseInitials';
+            btn.type      = 'button';
+            btn.textContent = 'Use initials';
+            initialsRow.appendChild(btn);
+            btn.addEventListener('click', handleUseInitials);
+          }
+
+          if (badge) badge.style.opacity = '';
+          renderFeed(); // refresh feed cards with new avatar
+        }, 'avatar');
+      });
+    }
+
+    // Initials save
+    const initSave = document.getElementById('profileInitialsSave');
+    const initInput = document.getElementById('profileInitialsInput');
+    if (initSave && initInput) {
+      initSave.addEventListener('click', async () => {
+        const newInitials = initInput.value.trim().toUpperCase().slice(0, 3);
+        if (!newInitials) return;
+        const { error } = await supabase
+          .from('profiles').update({ avatar_initials: newInitials }).eq('id', currentUser.id);
+        if (error) { showToast('Could not save initials.'); return; }
+
+        currentProfile.avatar_initials = newInitials;
+        profile.avatar_initials        = newInitials;
+        if (allProfiles[currentUser.id]) allProfiles[currentUser.id].avatar_initials = newInitials;
+
+        // Update avatar display if no photo set
+        if (!profile.avatar_url) {
+          const bigAvatar = profileBody.querySelector('.profile-avatar-big');
+          if (bigAvatar) bigAvatar.textContent = newInitials;
+          renderFeed();
+        }
+        showToast('Initials saved.');
+      });
+    }
+
+    // "Use initials" — remove avatar photo
+    function handleUseInitials() {
+      supabase.from('profiles').update({ avatar_url: null }).eq('id', currentUser.id)
+        .then(({ error }) => {
+          if (error) { showToast('Could not remove photo.'); return; }
+
+          currentProfile.avatar_url = null;
+          profile.avatar_url        = null;
+          if (allProfiles[currentUser.id]) allProfiles[currentUser.id].avatar_url = null;
+
+          const curInitials = profile.avatar_initials || letter;
+          const bigAvatar = profileBody.querySelector('.profile-avatar-big');
+          if (bigAvatar) bigAvatar.textContent = curInitials;
+
+          const useBtn = document.getElementById('profileUseInitials');
+          if (useBtn) useBtn.remove();
+
+          renderFeed();
+        });
+    }
+
+    const useInitialsBtn = document.getElementById('profileUseInitials');
+    if (useInitialsBtn) useInitialsBtn.addEventListener('click', handleUseInitials);
   }
 
   // Render posts list

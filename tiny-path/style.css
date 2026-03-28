@@ -352,6 +352,15 @@ body {
 .filter-link:hover { color: #c0392b; }
 .avatar.filter-link:hover { opacity: 0.8; color: #c0392b; }
 
+/* Avatar photo image (inside .avatar or .profile-avatar-big) */
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
 .timestamp {
   font-size: 12px;
   color: #aaa;
@@ -1500,10 +1509,15 @@ body {
 .profile-cover-change:hover { background: rgba(0,0,0,0.7); }
 
 /* Big avatar */
-.profile-avatar-big {
+/* Wrapper positions avatar + camera badge together */
+.profile-avatar-wrap {
   position: absolute;
   bottom: -28px;
   left: 20px;
+  z-index: 3;
+}
+
+.profile-avatar-big {
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -1515,8 +1529,28 @@ body {
   font-weight: 700;
   font-size: 22px;
   color: #c0392b;
-  z-index: 3;
+  overflow: hidden;
 }
+
+/* Small camera badge on bottom-right of big avatar */
+.profile-avatar-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #c0392b;
+  border: 2px solid #f4f1ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: background 0.15s;
+}
+.profile-avatar-badge:hover { background: #a93226; }
+.profile-avatar-badge svg { width: 11px; height: 11px; stroke: white; }
 
 /* Profile info section */
 .profile-info {
@@ -1567,7 +1601,64 @@ body {
   font-size: 12px;
   color: #aaa;
   font-weight: 500;
+  margin-top: 8px;
 }
+
+/* Initials editing row (own profile) */
+.profile-initials-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.profile-initials-label {
+  font-size: 12px;
+  color: #aaa;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.profile-initials-input {
+  width: 52px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  color: #c0392b;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.profile-initials-input:focus { border-color: #c0392b; }
+.profile-initials-save {
+  background: #f4f1ee;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.profile-initials-save:hover { background: #ebe5df; }
+.profile-use-initials-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #aaa;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  padding: 4px 0;
+  text-decoration: underline;
+  transition: color 0.15s;
+}
+.profile-use-initials-btn:hover { color: #c0392b; }
 
 /* Posts section */
 .profile-posts-header {
@@ -1738,6 +1829,13 @@ body {
 }
 
 .crop-window:active { cursor: grabbing; }
+
+/* Avatar crop mode — square circular preview window */
+.crop-modal--avatar .crop-window {
+  width: min(260px, 80vw);
+  height: min(260px, 80vw);
+  border-radius: 50%;
+}
 
 .crop-img {
   position: absolute;
