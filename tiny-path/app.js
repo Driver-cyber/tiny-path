@@ -47,6 +47,7 @@ let votesChannel        = null;
 let reactionsChannel    = null;
 let allComments         = [];
 let appInitialized      = false;
+let inPasswordRecovery  = false;
 
 // FAB / sheet state
 let fabOpen             = false;
@@ -284,7 +285,8 @@ setPasswordForm.addEventListener('submit', async e => {
     return;
   }
 
-  // Password updated — load profile and proceed
+  // Password updated — clear recovery mode, load profile and proceed
+  inPasswordRecovery = false;
   const { data: profile } = await supabase
     .from('profiles').select('display_name').eq('id', currentUser.id).maybeSingle();
 
@@ -331,20 +333,25 @@ displayNameForm.addEventListener('submit', async e => {
 
 supabase.auth.onAuthStateChange(async (event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
+    inPasswordRecovery = true;
     currentUser = session.user;
     showScreen('setpassword');
     return;
   }
 
   if (!session) {
-    currentUser    = null;
-    currentProfile = null;
+    currentUser        = null;
+    currentProfile     = null;
+    inPasswordRecovery = false;
     teardownApp();
     showScreen('auth');
     return;
   }
 
   if (event !== 'INITIAL_SESSION' && event !== 'SIGNED_IN') return;
+
+  // Don't proceed to app while the user is mid-password-reset
+  if (inPasswordRecovery) return;
 
   currentUser = session.user;
 
