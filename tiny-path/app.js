@@ -64,6 +64,23 @@ let emojiPickerEl       = null;
 // Profile overlay state
 let profileOverlayUserId = null;
 
+// Cover photo crop state
+let cropFile           = null;
+let cropNaturalW       = 0;
+let cropNaturalH       = 0;
+let cropFitScale       = 1;
+let cropUserScale      = 1;
+let cropOffsetX        = 0;
+let cropOffsetY        = 0;
+let cropPanActive      = false;
+let cropPanStartX      = 0;
+let cropPanStartY      = 0;
+let cropPanStartOX     = 0;
+let cropPanStartOY     = 0;
+let cropPinchStartDist = 0;
+let cropPinchStartScale = 1;
+let cropOnConfirm      = null;
+
 /* ═══════════════════════════════════════
    DOM REFS — AUTH
 ═══════════════════════════════════════ */
@@ -132,6 +149,16 @@ const profileOverlay     = document.getElementById('profileOverlay');
 const profileBack        = document.getElementById('profileBack');
 const profileBody        = document.getElementById('profileBody');
 const profileEditBtn     = document.getElementById('profileEditBtn');
+
+/* ═══════════════════════════════════════
+   DOM REFS — CROP MODAL
+═══════════════════════════════════════ */
+
+const cropModal    = document.getElementById('cropModal');
+const cropCancel   = document.getElementById('cropCancel');
+const cropConfirm  = document.getElementById('cropConfirm');
+const cropWindowEl = document.getElementById('cropWindow');
+const cropImageEl  = document.getElementById('cropImage');
 
 /* ═══════════════════════════════════════
    DOM REFS — FAB + SHEET
@@ -816,7 +843,7 @@ function renderFeed() {
     postEl.innerHTML = `
       <div class="post-header">
         <div class="post-user">
-          <div class="avatar">${esc(firstLetter)}</div>
+          <div class="avatar filter-link" data-userid="${esc(post.user_id)}">${esc(firstLetter)}</div>
           <div>
             <div class="username filter-link" data-userid="${esc(post.user_id)}" data-name="${esc(post.display_name)}">${esc(post.display_name)}</div>
             <div class="timestamp">${timeAgo(post.created_at)}</div>
@@ -836,9 +863,8 @@ function renderFeed() {
       });
     }
 
-    postEl.querySelector('.filter-link').addEventListener('click', e => {
-      e.stopPropagation();
-      openProfile(post.user_id);
+    postEl.querySelectorAll('.filter-link').forEach(el => {
+      el.addEventListener('click', e => { e.stopPropagation(); openProfile(post.user_id); });
     });
 
     bindPostActionsListeners(postEl, post);
@@ -1470,6 +1496,178 @@ imageModal.addEventListener('click', e => {
 });
 
 /* ═══════════════════════════════════════
+   COVER PHOTO CROP TOOL
+═══════════════════════════════════════ */
+
+function openCropModal(file, onConfirm) {
+  cropFile      = file;
+  cropOnConfirm = onConfirm;
+  cropUserScale = 1;
+  cropOffsetX   = 0;
+  cropOffsetY   = 0;
+
+  const url = URL.createObjectURL(file);
+  cropImageEl.onload = () => {
+    cropNaturalW = cropImageEl.naturalWidth;
+    cropNaturalH = cropImageEl.naturalHeight;
+    const winW   = cropWindowEl.offsetWidth;
+    const winH   = cropWindowEl.offsetHeight;
+    // Scale to fill the crop window (cover behavior)
+    cropFitScale  = Math.max(winW / cropNaturalW, winH / cropNaturalH);
+    cropUserScale = 1;
+    cropOffsetX   = 0;
+    cropOffsetY   = 0;
+    updateCropTransform();
+  };
+  cropImageEl.src = url;
+
+  cropModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCropModal() {
+  cropModal.classList.add('hidden');
+  URL.revokeObjectURL(cropImageEl.src);
+  cropImageEl.src = '';
+  cropImageEl.onload = null;
+  cropFile = null;
+  cropOnConfirm = null;
+  // Don't restore overflow — profile overlay is still open underneath
+}
+
+function updateCropTransform() {
+  const totalScale = cropFitScale * cropUserScale;
+  cropImageEl.style.transform =
+    `translate(calc(-50% + ${cropOffsetX}px), calc(-50% + ${cropOffsetY}px)) scale(${totalScale})`;
+}
+
+function clampCropOffset() {
+  const winW     = cropWindowEl.offsetWidth;
+  const winH     = cropWindowEl.offsetHeight;
+  const total    = cropFitScale * cropUserScale;
+  const dispW    = cropNaturalW * total;
+  const dispH    = cropNaturalH * total;
+  const maxX     = Math.max(0, (dispW - winW) / 2);
+  const maxY     = Math.max(0, (dispH - winH) / 2);
+  cropOffsetX    = Math.max(-maxX, Math.min(maxX, cropOffsetX));
+  cropOffsetY    = Math.max(-maxY, Math.min(maxY, cropOffsetY));
+}
+
+function getCroppedBlob() {
+  const winW = cropWindowEl.offsetWidth;
+  const winH = cropWindowEl.offsetHeight;
+  const dpr  = Math.min(window.devicePixelRatio || 2, 3);
+  const canvasW = Math.round(winW * dpr);
+  const canvasH = Math.round(winH * dpr);
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = canvasW;
+  canvas.height = canvasH;
+  const ctx = canvas.getContext('2d');
+
+  const total      = cropFitScale * cropUserScale;
+  // Where the image center sits in the window (in display px)
+  const imgCX      = winW / 2 + cropOffsetX;
+  const imgCY      = winH / 2 + cropOffsetY;
+  // Corresponding region in the natural image
+  const srcX       = cropNaturalW / 2 - imgCX / total;
+  const srcY       = cropNaturalH / 2 - imgCY / total;
+  const srcW       = winW / total;
+  const srcH       = winH / total;
+  // Clamp to image bounds
+  const cSrcX      = Math.max(0, srcX);
+  const cSrcY      = Math.max(0, srcY);
+  const cSrcW      = Math.min(srcW, cropNaturalW - cSrcX);
+  const cSrcH      = Math.min(srcH, cropNaturalH - cSrcY);
+  const dstX       = (cSrcX - srcX) / srcW * canvasW;
+  const dstY       = (cSrcY - srcY) / srcH * canvasH;
+  const dstW       = cSrcW / srcW * canvasW;
+  const dstH       = cSrcH / srcH * canvasH;
+
+  ctx.drawImage(cropImageEl, cSrcX, cSrcY, cSrcW, cSrcH, dstX, dstY, dstW, dstH);
+
+  return new Promise(resolve => {
+    canvas.toBlob(resolve, 'image/jpeg', 0.92);
+  });
+}
+
+cropConfirm.addEventListener('click', async () => {
+  cropConfirm.disabled    = true;
+  cropConfirm.textContent = 'Saving…';
+  try {
+    const blob = await getCroppedBlob();
+    if (cropOnConfirm) await cropOnConfirm(blob);
+    closeCropModal();
+  } catch {
+    showToast('Could not process photo. Try again.');
+    cropConfirm.disabled    = false;
+    cropConfirm.textContent = 'Use this';
+  }
+});
+
+cropCancel.addEventListener('click', closeCropModal);
+
+// Touch — pan
+cropWindowEl.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    cropPanActive  = true;
+    cropPanStartX  = e.touches[0].clientX;
+    cropPanStartY  = e.touches[0].clientY;
+    cropPanStartOX = cropOffsetX;
+    cropPanStartOY = cropOffsetY;
+  } else if (e.touches.length === 2) {
+    cropPanActive = false;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    cropPinchStartDist  = Math.hypot(dx, dy);
+    cropPinchStartScale = cropUserScale;
+  }
+}, { passive: true });
+
+cropWindowEl.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && cropPanActive) {
+    cropOffsetX = cropPanStartOX + (e.touches[0].clientX - cropPanStartX);
+    cropOffsetY = cropPanStartOY + (e.touches[0].clientY - cropPanStartY);
+    clampCropOffset();
+    updateCropTransform();
+  } else if (e.touches.length === 2) {
+    const dx   = e.touches[0].clientX - e.touches[1].clientX;
+    const dy   = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    cropUserScale = Math.max(0.9, Math.min(5, cropPinchStartScale * dist / cropPinchStartDist));
+    clampCropOffset();
+    updateCropTransform();
+  }
+}, { passive: false });
+
+cropWindowEl.addEventListener('touchend', () => { cropPanActive = false; }, { passive: true });
+
+// Mouse (desktop testing)
+cropWindowEl.addEventListener('mousedown', e => {
+  cropPanActive  = true;
+  cropPanStartX  = e.clientX;
+  cropPanStartY  = e.clientY;
+  cropPanStartOX = cropOffsetX;
+  cropPanStartOY = cropOffsetY;
+  e.preventDefault();
+});
+window.addEventListener('mousemove', e => {
+  if (!cropPanActive) return;
+  cropOffsetX = cropPanStartOX + (e.clientX - cropPanStartX);
+  cropOffsetY = cropPanStartOY + (e.clientY - cropPanStartY);
+  clampCropOffset();
+  updateCropTransform();
+});
+window.addEventListener('mouseup', () => { cropPanActive = false; });
+cropWindowEl.addEventListener('wheel', e => {
+  e.preventDefault();
+  cropUserScale = Math.max(0.9, Math.min(5, cropUserScale * (e.deltaY > 0 ? 0.93 : 1.07)));
+  clampCropOffset();
+  updateCropTransform();
+}, { passive: false });
+
+/* ═══════════════════════════════════════
    PROFILE OVERLAY
 ═══════════════════════════════════════ */
 
@@ -1575,38 +1773,42 @@ function renderProfileOverlay(userId, profile, posts) {
   if (isOwn) {
     const coverInput = document.getElementById('profileCoverInput');
     if (coverInput) {
-      coverInput.addEventListener('change', async () => {
+      coverInput.addEventListener('change', () => {
         const file = coverInput.files[0];
         if (!file) return;
-        const label = profileBody.querySelector('.profile-cover-change');
-        if (label) label.style.opacity = '0.4';
+        // Reset input so the same file can be re-selected after cancel
+        coverInput.value = '';
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', UPLOAD_PRESET);
-        const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-          method: 'POST', body: formData
+        openCropModal(file, async (croppedBlob) => {
+          const label = profileBody.querySelector('.profile-cover-change');
+          if (label) label.style.opacity = '0.4';
+
+          const formData = new FormData();
+          formData.append('file', croppedBlob, 'cover.jpg');
+          formData.append('upload_preset', UPLOAD_PRESET);
+          const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: 'POST', body: formData
+          });
+          const data = await res.json();
+          const url  = data.secure_url;
+          if (!url) { showToast('Cover photo upload failed.'); if (label) label.style.opacity = ''; return; }
+
+          const { error } = await supabase
+            .from('profiles').update({ cover_photo_url: url }).eq('id', currentUser.id);
+          if (error) { showToast('Could not save cover photo.'); if (label) label.style.opacity = ''; return; }
+
+          currentProfile.cover_photo_url = url;
+
+          const coverArea = profileBody.querySelector('.profile-cover-placeholder, .profile-cover-img');
+          if (coverArea) {
+            const img = document.createElement('img');
+            img.className = 'profile-cover-img';
+            img.src = url;
+            img.alt = 'Cover photo';
+            coverArea.replaceWith(img);
+          }
+          if (label) label.style.opacity = '';
         });
-        const data = await res.json();
-        const url  = data.secure_url;
-        if (!url) { showToast('Cover photo upload failed.'); if (label) label.style.opacity = ''; return; }
-
-        const { error } = await supabase
-          .from('profiles').update({ cover_photo_url: url }).eq('id', currentUser.id);
-        if (error) { showToast('Could not save cover photo.'); if (label) label.style.opacity = ''; return; }
-
-        currentProfile.cover_photo_url = url;
-
-        // Swap placeholder / old image
-        const coverArea = profileBody.querySelector('.profile-cover-placeholder, .profile-cover-img');
-        if (coverArea) {
-          const img  = document.createElement('img');
-          img.className = 'profile-cover-img';
-          img.src    = url;
-          img.alt    = 'Cover photo';
-          coverArea.replaceWith(img);
-        }
-        if (label) label.style.opacity = '';
       });
     }
 
