@@ -39,6 +39,7 @@ let currentProfile      = null;
 let allPosts            = [];
 let allVotes            = [];
 let allReactions        = [];
+let allProfiles         = {}; // userId → profile row (for avatar rendering)
 let filterUserId        = null;
 let filterDisplayName   = null;
 let currentDetailPostId = null;
@@ -63,6 +64,24 @@ let emojiPickerEl       = null;
 
 // Profile overlay state
 let profileOverlayUserId = null;
+
+// Cover photo crop state
+let cropFile           = null;
+let cropNaturalW       = 0;
+let cropNaturalH       = 0;
+let cropFitScale       = 1;
+let cropUserScale      = 1;
+let cropOffsetX        = 0;
+let cropOffsetY        = 0;
+let cropPanActive      = false;
+let cropPanStartX      = 0;
+let cropPanStartY      = 0;
+let cropPanStartOX     = 0;
+let cropPanStartOY     = 0;
+let cropPinchStartDist = 0;
+let cropPinchStartScale = 1;
+let cropOnConfirm      = null;
+let cropMode           = 'cover'; // 'cover' | 'avatar'
 
 /* ═══════════════════════════════════════
    DOM REFS — AUTH
@@ -132,6 +151,16 @@ const profileOverlay     = document.getElementById('profileOverlay');
 const profileBack        = document.getElementById('profileBack');
 const profileBody        = document.getElementById('profileBody');
 const profileEditBtn     = document.getElementById('profileEditBtn');
+
+/* ═══════════════════════════════════════
+   DOM REFS — CROP MODAL
+═══════════════════════════════════════ */
+
+const cropModal    = document.getElementById('cropModal');
+const cropCancel   = document.getElementById('cropCancel');
+const cropConfirm  = document.getElementById('cropConfirm');
+const cropWindowEl = document.getElementById('cropWindow');
+const cropImageEl  = document.getElementById('cropImage');
 
 /* ═══════════════════════════════════════
    DOM REFS — FAB + SHEET
@@ -218,7 +247,13 @@ authForm.addEventListener('submit', async e => {
       sentEmailDisplay.textContent = email;
       showScreen('checkemail');
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out — check your connection and try again.')), 15000)
+      );
+      const { error } = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        timeout
+      ]);
       if (error) throw error;
     }
   } catch (err) {
@@ -345,6 +380,17 @@ displayNameForm.addEventListener('submit', async e => {
 });
 
 /* ═══════════════════════════════════════
+   PREVENT PAGE-LEVEL PINCH ZOOM
+   (crop tool uses touch-action:none on its own window so it's unaffected)
+═══════════════════════════════════════ */
+
+document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+
+/* ═══════════════════════════════════════
    AUTH STATE LISTENER
 ═══════════════════════════════════════ */
 
@@ -418,6 +464,7 @@ function teardownApp() {
   allComments  = [];
   allVotes     = [];
   allReactions = [];
+  allProfiles  = {};
   feed.innerHTML = '';
   closeDetail(true);
   closeProfile(true);
@@ -440,6 +487,18 @@ async function loadPosts() {
   allPosts     = postsRes.data     || [];
   allVotes     = votesRes.data     || [];
   allReactions = reactionsRes.data || [];
+
+  // Fetch profiles for all unique posters so we can render avatar photos
+  const userIds = [...new Set(allPosts.map(p => p.user_id))];
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, avatar_initials')
+      .in('id', userIds);
+    allProfiles = {};
+    (profiles || []).forEach(p => { allProfiles[p.id] = p; });
+  }
+
   renderFeed();
 }
 
@@ -536,6 +595,20 @@ function showToast(msg) {
     t.classList.remove('toast-visible');
     setTimeout(() => t.remove(), 300);
   }, 3000);
+}
+
+/* ═══════════════════════════════════════
+   AVATAR HELPER
+═══════════════════════════════════════ */
+
+// Returns the inner HTML for an avatar circle (photo img or initials text)
+function avatarInnerHtml(userId, displayName) {
+  const p = allProfiles[userId];
+  if (p?.avatar_url) {
+    return `<img class="avatar-img" src="${esc(p.avatar_url)}" alt="" />`;
+  }
+  const initials = p?.avatar_initials || (displayName || '?').charAt(0).toUpperCase();
+  return esc(initials);
 }
 
 /* ═══════════════════════════════════════
@@ -801,7 +874,6 @@ function renderFeed() {
     }
 
     const isImageOnly = !!(post.image_url && !post.text);
-    const firstLetter = (post.display_name || '?').charAt(0).toUpperCase();
 
     const postEl = document.createElement('div');
     postEl.className  = `post${isImageOnly ? ' post--image-only' : ''}`;
@@ -810,7 +882,7 @@ function renderFeed() {
     postEl.innerHTML = `
       <div class="post-header">
         <div class="post-user">
-          <div class="avatar">${esc(firstLetter)}</div>
+          <div class="avatar filter-link" data-userid="${esc(post.user_id)}">${avatarInnerHtml(post.user_id, post.display_name)}</div>
           <div>
             <div class="username filter-link" data-userid="${esc(post.user_id)}" data-name="${esc(post.display_name)}">${esc(post.display_name)}</div>
             <div class="timestamp">${timeAgo(post.created_at)}</div>
@@ -830,9 +902,8 @@ function renderFeed() {
       });
     }
 
-    postEl.querySelector('.filter-link').addEventListener('click', e => {
-      e.stopPropagation();
-      openProfile(post.user_id);
+    postEl.querySelectorAll('.filter-link').forEach(el => {
+      el.addEventListener('click', e => { e.stopPropagation(); openProfile(post.user_id); });
     });
 
     bindPostActionsListeners(postEl, post);
@@ -1024,6 +1095,10 @@ sheetSubmit.addEventListener('click', async () => {
     let image_url = null;
 
     if (sheetImageFile) {
+      // Show upload indicator over the photo preview
+      sheetSubmit.textContent = 'Uploading…';
+      sheetPhotoArea.classList.add('uploading');
+
       const formData = new FormData();
       formData.append('file', sheetImageFile);
       formData.append('upload_preset', UPLOAD_PRESET);
@@ -1032,6 +1107,9 @@ sheetSubmit.addEventListener('click', async () => {
       });
       const data = await res.json();
       image_url  = data.secure_url;
+
+      sheetPhotoArea.classList.remove('uploading');
+      sheetSubmit.textContent = 'Posting…';
     }
 
     await supabase.from('posts').insert({
@@ -1045,6 +1123,7 @@ sheetSubmit.addEventListener('click', async () => {
     if (navigator.vibrate) navigator.vibrate([10, 30, 10]);
     closeSheet();
   } catch {
+    sheetPhotoArea.classList.remove('uploading');
     sheetSubmit.disabled    = false;
     sheetSubmit.textContent = 'Post';
     alert('Could not post. Please try again.');
@@ -1106,7 +1185,6 @@ function renderDetailBody(post) {
   const canEdit   = isOwner;
   const canDelete = isOwner || isMod;
 
-  const firstLetter = (post.display_name || '?').charAt(0).toUpperCase();
   const editedLabel = post.edited_at ? '<span class="edited-label">· edited</span>' : '';
 
   const upCount   = getVoteCount(post.id, 'up');
@@ -1146,7 +1224,7 @@ function renderDetailBody(post) {
     <div class="detail-post">
       <div class="post-header">
         <div class="post-user">
-          <div class="avatar filter-link" data-userid="${esc(post.user_id)}">${esc(firstLetter)}</div>
+          <div class="avatar filter-link" data-userid="${esc(post.user_id)}">${avatarInnerHtml(post.user_id, post.display_name)}</div>
           <div>
             <div class="username filter-link" data-userid="${esc(post.user_id)}">${esc(post.display_name)}</div>
             <div class="timestamp">${fullTimestamp(post.created_at)} ${editedLabel}</div>
@@ -1213,13 +1291,11 @@ function renderDetailBody(post) {
 ═══════════════════════════════════════ */
 
 function renderDetailBodyEdit(post) {
-  const firstLetter = (post.display_name || '?').charAt(0).toUpperCase();
-
   detailBody.innerHTML = `
     <div class="detail-post">
       <div class="post-header">
         <div class="post-user">
-          <div class="avatar">${esc(firstLetter)}</div>
+          <div class="avatar">${avatarInnerHtml(post.user_id, post.display_name)}</div>
           <div>
             <div class="username">${esc(post.display_name)}</div>
             <div class="timestamp">${fullTimestamp(post.created_at)}</div>
@@ -1456,6 +1532,183 @@ imageModal.addEventListener('click', e => {
 });
 
 /* ═══════════════════════════════════════
+   COVER PHOTO CROP TOOL
+═══════════════════════════════════════ */
+
+function openCropModal(file, onConfirm, mode = 'cover') {
+  cropFile      = file;
+  cropOnConfirm = onConfirm;
+  cropMode      = mode;
+  cropModal.classList.toggle('crop-modal--avatar', mode === 'avatar');
+  cropUserScale = 1;
+  cropOffsetX   = 0;
+  cropOffsetY   = 0;
+
+  const url = URL.createObjectURL(file);
+  cropImageEl.onload = () => {
+    cropNaturalW = cropImageEl.naturalWidth;
+    cropNaturalH = cropImageEl.naturalHeight;
+    const winW   = cropWindowEl.offsetWidth;
+    const winH   = cropWindowEl.offsetHeight;
+    // Scale to fill the crop window (cover behavior)
+    cropFitScale  = Math.max(winW / cropNaturalW, winH / cropNaturalH);
+    cropUserScale = 1;
+    cropOffsetX   = 0;
+    cropOffsetY   = 0;
+    updateCropTransform();
+  };
+  cropImageEl.src = url;
+
+  cropModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCropModal() {
+  cropModal.classList.add('hidden');
+  URL.revokeObjectURL(cropImageEl.src);
+  cropImageEl.src = '';
+  cropImageEl.onload = null;
+  cropFile = null;
+  cropOnConfirm = null;
+  // Don't restore overflow — profile overlay is still open underneath
+}
+
+function updateCropTransform() {
+  const totalScale = cropFitScale * cropUserScale;
+  cropImageEl.style.transform =
+    `translate(calc(-50% + ${cropOffsetX}px), calc(-50% + ${cropOffsetY}px)) scale(${totalScale})`;
+}
+
+function clampCropOffset() {
+  const winW     = cropWindowEl.offsetWidth;
+  const winH     = cropWindowEl.offsetHeight;
+  const total    = cropFitScale * cropUserScale;
+  const dispW    = cropNaturalW * total;
+  const dispH    = cropNaturalH * total;
+  const maxX     = Math.abs(dispW - winW) / 2;
+  const maxY     = Math.abs(dispH - winH) / 2;
+  cropOffsetX    = Math.max(-maxX, Math.min(maxX, cropOffsetX));
+  cropOffsetY    = Math.max(-maxY, Math.min(maxY, cropOffsetY));
+}
+
+function getCroppedBlob() {
+  const winW = cropWindowEl.offsetWidth;
+  const winH = cropWindowEl.offsetHeight;
+  const dpr  = Math.min(window.devicePixelRatio || 2, 3);
+  // Avatar mode: fixed 400×400 square output regardless of window/dpr
+  const canvasW = cropMode === 'avatar' ? 400 : Math.round(winW * dpr);
+  const canvasH = cropMode === 'avatar' ? 400 : Math.round(winH * dpr);
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = canvasW;
+  canvas.height = canvasH;
+  const ctx = canvas.getContext('2d');
+
+  const total      = cropFitScale * cropUserScale;
+  // Where the image center sits in the window (in display px)
+  const imgCX      = winW / 2 + cropOffsetX;
+  const imgCY      = winH / 2 + cropOffsetY;
+  // Corresponding region in the natural image
+  const srcX       = cropNaturalW / 2 - imgCX / total;
+  const srcY       = cropNaturalH / 2 - imgCY / total;
+  const srcW       = winW / total;
+  const srcH       = winH / total;
+  // Clamp to image bounds
+  const cSrcX      = Math.max(0, srcX);
+  const cSrcY      = Math.max(0, srcY);
+  const cSrcW      = Math.min(srcW, cropNaturalW - cSrcX);
+  const cSrcH      = Math.min(srcH, cropNaturalH - cSrcY);
+  const dstX       = (cSrcX - srcX) / srcW * canvasW;
+  const dstY       = (cSrcY - srcY) / srcH * canvasH;
+  const dstW       = cSrcW / srcW * canvasW;
+  const dstH       = cSrcH / srcH * canvasH;
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvasW, canvasH);
+  ctx.drawImage(cropImageEl, cSrcX, cSrcY, cSrcW, cSrcH, dstX, dstY, dstW, dstH);
+
+  return new Promise(resolve => {
+    canvas.toBlob(resolve, 'image/jpeg', 0.92);
+  });
+}
+
+cropConfirm.addEventListener('click', async () => {
+  cropConfirm.disabled    = true;
+  cropConfirm.textContent = 'Saving…';
+  try {
+    const blob = await getCroppedBlob();
+    if (cropOnConfirm) await cropOnConfirm(blob);
+    closeCropModal();
+  } catch {
+    showToast('Could not process photo. Try again.');
+    cropConfirm.disabled    = false;
+    cropConfirm.textContent = 'Use this';
+  }
+});
+
+cropCancel.addEventListener('click', closeCropModal);
+
+// Touch — pan
+cropWindowEl.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    cropPanActive  = true;
+    cropPanStartX  = e.touches[0].clientX;
+    cropPanStartY  = e.touches[0].clientY;
+    cropPanStartOX = cropOffsetX;
+    cropPanStartOY = cropOffsetY;
+  } else if (e.touches.length === 2) {
+    cropPanActive = false;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    cropPinchStartDist  = Math.hypot(dx, dy);
+    cropPinchStartScale = cropUserScale;
+  }
+}, { passive: true });
+
+cropWindowEl.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && cropPanActive) {
+    cropOffsetX = cropPanStartOX + (e.touches[0].clientX - cropPanStartX);
+    cropOffsetY = cropPanStartOY + (e.touches[0].clientY - cropPanStartY);
+    clampCropOffset();
+    updateCropTransform();
+  } else if (e.touches.length === 2) {
+    const dx   = e.touches[0].clientX - e.touches[1].clientX;
+    const dy   = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    cropUserScale = Math.max(0.2, Math.min(5, cropPinchStartScale * dist / cropPinchStartDist));
+    clampCropOffset();
+    updateCropTransform();
+  }
+}, { passive: false });
+
+cropWindowEl.addEventListener('touchend', () => { cropPanActive = false; }, { passive: true });
+
+// Mouse (desktop testing)
+cropWindowEl.addEventListener('mousedown', e => {
+  cropPanActive  = true;
+  cropPanStartX  = e.clientX;
+  cropPanStartY  = e.clientY;
+  cropPanStartOX = cropOffsetX;
+  cropPanStartOY = cropOffsetY;
+  e.preventDefault();
+});
+window.addEventListener('mousemove', e => {
+  if (!cropPanActive) return;
+  cropOffsetX = cropPanStartOX + (e.clientX - cropPanStartX);
+  cropOffsetY = cropPanStartOY + (e.clientY - cropPanStartY);
+  clampCropOffset();
+  updateCropTransform();
+});
+window.addEventListener('mouseup', () => { cropPanActive = false; });
+cropWindowEl.addEventListener('wheel', e => {
+  e.preventDefault();
+  cropUserScale = Math.max(0.2, Math.min(5, cropUserScale * (e.deltaY > 0 ? 0.93 : 1.07)));
+  clampCropOffset();
+  updateCropTransform();
+}, { passive: false });
+
+/* ═══════════════════════════════════════
    PROFILE OVERLAY
 ═══════════════════════════════════════ */
 
@@ -1520,6 +1773,8 @@ function renderProfileOverlay(userId, profile, posts) {
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : '';
 
+  const avatarInitials = profile.avatar_initials || letter;
+
   profileBody.innerHTML = `
     <div class="profile-cover-area">
       ${profile.cover_photo_url
@@ -1530,7 +1785,18 @@ function renderProfileOverlay(userId, profile, posts) {
           ${ICON.camera}
           <input type="file" id="profileCoverInput" accept="image/*" hidden />
         </label>` : ''}
-      <div class="profile-avatar-big">${esc(letter)}</div>
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar-big">
+          ${profile.avatar_url
+            ? `<img class="avatar-img" src="${esc(profile.avatar_url)}" alt="" />`
+            : esc(avatarInitials)}
+        </div>
+        ${isOwn ? `
+          <label class="profile-avatar-badge" for="profileAvatarInput" title="Change avatar photo">
+            ${ICON.camera}
+            <input type="file" id="profileAvatarInput" accept="image/*" hidden />
+          </label>` : ''}
+      </div>
     </div>
     <div class="profile-info">
       <div class="profile-name">${esc(profile.display_name)}</div>
@@ -1541,6 +1807,15 @@ function renderProfileOverlay(userId, profile, posts) {
         <textarea class="profile-bio-edit hidden" id="profileBioEdit"
           placeholder="Tell your friends a little about yourself…"
           maxlength="160">${esc(profile.bio || '')}</textarea>
+        <div class="profile-initials-row">
+          <span class="profile-initials-label">Initials</span>
+          <input class="profile-initials-input" id="profileInitialsInput" maxlength="3"
+            placeholder="${esc(letter)}" value="${esc(avatarInitials)}" />
+          <button class="profile-initials-save" id="profileInitialsSave" type="button">Save</button>
+          ${profile.avatar_url
+            ? `<button class="profile-use-initials-btn" id="profileUseInitials" type="button">Use initials</button>`
+            : ''}
+        </div>
       ` : `
         <div class="profile-bio${!profile.bio ? ' profile-bio-empty' : ''}">
           ${profile.bio ? esc(profile.bio) : 'No bio yet.'}
@@ -1561,38 +1836,42 @@ function renderProfileOverlay(userId, profile, posts) {
   if (isOwn) {
     const coverInput = document.getElementById('profileCoverInput');
     if (coverInput) {
-      coverInput.addEventListener('change', async () => {
+      coverInput.addEventListener('change', () => {
         const file = coverInput.files[0];
         if (!file) return;
-        const label = profileBody.querySelector('.profile-cover-change');
-        if (label) label.style.opacity = '0.4';
+        // Reset input so the same file can be re-selected after cancel
+        coverInput.value = '';
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', UPLOAD_PRESET);
-        const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-          method: 'POST', body: formData
+        openCropModal(file, async (croppedBlob) => {
+          const label = profileBody.querySelector('.profile-cover-change');
+          if (label) label.style.opacity = '0.4';
+
+          const formData = new FormData();
+          formData.append('file', croppedBlob, 'cover.jpg');
+          formData.append('upload_preset', UPLOAD_PRESET);
+          const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: 'POST', body: formData
+          });
+          const data = await res.json();
+          const url  = data.secure_url;
+          if (!url) { showToast('Cover photo upload failed.'); if (label) label.style.opacity = ''; return; }
+
+          const { error } = await supabase
+            .from('profiles').update({ cover_photo_url: url }).eq('id', currentUser.id);
+          if (error) { showToast('Could not save cover photo.'); if (label) label.style.opacity = ''; return; }
+
+          currentProfile.cover_photo_url = url;
+
+          const coverArea = profileBody.querySelector('.profile-cover-placeholder, .profile-cover-img');
+          if (coverArea) {
+            const img = document.createElement('img');
+            img.className = 'profile-cover-img';
+            img.src = url;
+            img.alt = 'Cover photo';
+            coverArea.replaceWith(img);
+          }
+          if (label) label.style.opacity = '';
         });
-        const data = await res.json();
-        const url  = data.secure_url;
-        if (!url) { showToast('Cover photo upload failed.'); if (label) label.style.opacity = ''; return; }
-
-        const { error } = await supabase
-          .from('profiles').update({ cover_photo_url: url }).eq('id', currentUser.id);
-        if (error) { showToast('Could not save cover photo.'); if (label) label.style.opacity = ''; return; }
-
-        currentProfile.cover_photo_url = url;
-
-        // Swap placeholder / old image
-        const coverArea = profileBody.querySelector('.profile-cover-placeholder, .profile-cover-img');
-        if (coverArea) {
-          const img  = document.createElement('img');
-          img.className = 'profile-cover-img';
-          img.src    = url;
-          img.alt    = 'Cover photo';
-          coverArea.replaceWith(img);
-        }
-        if (label) label.style.opacity = '';
       });
     }
 
@@ -1628,6 +1907,108 @@ function renderProfileOverlay(userId, profile, posts) {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); bioEdit.blur(); }
       });
     }
+
+    // Avatar photo upload
+    const avatarInput = document.getElementById('profileAvatarInput');
+    if (avatarInput) {
+      avatarInput.addEventListener('change', () => {
+        const file = avatarInput.files[0];
+        if (!file) return;
+        avatarInput.value = '';
+
+        openCropModal(file, async (croppedBlob) => {
+          const badge = profileBody.querySelector('.profile-avatar-badge');
+          if (badge) badge.style.opacity = '0.4';
+
+          const formData = new FormData();
+          formData.append('file', croppedBlob, 'avatar.jpg');
+          formData.append('upload_preset', UPLOAD_PRESET);
+          const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+            method: 'POST', body: formData
+          });
+          const data = await res.json();
+          const url  = data.secure_url;
+          if (!url) { showToast('Avatar upload failed.'); if (badge) badge.style.opacity = ''; return; }
+
+          const { error } = await supabase
+            .from('profiles').update({ avatar_url: url }).eq('id', currentUser.id);
+          if (error) { showToast('Could not save avatar.'); if (badge) badge.style.opacity = ''; return; }
+
+          // Update in-memory profile and allProfiles cache
+          currentProfile.avatar_url = url;
+          profile.avatar_url        = url;
+          if (allProfiles[currentUser.id]) allProfiles[currentUser.id].avatar_url = url;
+
+          // Refresh avatar display
+          const bigAvatar = profileBody.querySelector('.profile-avatar-big');
+          if (bigAvatar) bigAvatar.innerHTML = `<img class="avatar-img" src="${esc(url)}" alt="" />`;
+
+          // Show "Use initials" button if not already present
+          const initialsRow = document.getElementById('profileInitialsInput')?.closest('.profile-initials-row');
+          if (initialsRow && !document.getElementById('profileUseInitials')) {
+            const btn = document.createElement('button');
+            btn.className = 'profile-use-initials-btn';
+            btn.id        = 'profileUseInitials';
+            btn.type      = 'button';
+            btn.textContent = 'Use initials';
+            initialsRow.appendChild(btn);
+            btn.addEventListener('click', handleUseInitials);
+          }
+
+          if (badge) badge.style.opacity = '';
+          renderFeed(); // refresh feed cards with new avatar
+        }, 'avatar');
+      });
+    }
+
+    // Initials save
+    const initSave = document.getElementById('profileInitialsSave');
+    const initInput = document.getElementById('profileInitialsInput');
+    if (initSave && initInput) {
+      initSave.addEventListener('click', async () => {
+        const newInitials = initInput.value.trim().toUpperCase().slice(0, 3);
+        if (!newInitials) return;
+        const { error } = await supabase
+          .from('profiles').update({ avatar_initials: newInitials }).eq('id', currentUser.id);
+        if (error) { showToast('Could not save initials.'); return; }
+
+        currentProfile.avatar_initials = newInitials;
+        profile.avatar_initials        = newInitials;
+        if (allProfiles[currentUser.id]) allProfiles[currentUser.id].avatar_initials = newInitials;
+
+        // Update avatar display if no photo set
+        if (!profile.avatar_url) {
+          const bigAvatar = profileBody.querySelector('.profile-avatar-big');
+          if (bigAvatar) bigAvatar.textContent = newInitials;
+          renderFeed();
+        }
+        showToast('Initials saved.');
+      });
+    }
+
+    // "Use initials" — remove avatar photo
+    function handleUseInitials() {
+      supabase.from('profiles').update({ avatar_url: null }).eq('id', currentUser.id)
+        .then(({ error }) => {
+          if (error) { showToast('Could not remove photo.'); return; }
+
+          currentProfile.avatar_url = null;
+          profile.avatar_url        = null;
+          if (allProfiles[currentUser.id]) allProfiles[currentUser.id].avatar_url = null;
+
+          const curInitials = profile.avatar_initials || letter;
+          const bigAvatar = profileBody.querySelector('.profile-avatar-big');
+          if (bigAvatar) bigAvatar.textContent = curInitials;
+
+          const useBtn = document.getElementById('profileUseInitials');
+          if (useBtn) useBtn.remove();
+
+          renderFeed();
+        });
+    }
+
+    const useInitialsBtn = document.getElementById('profileUseInitials');
+    if (useInitialsBtn) useInitialsBtn.addEventListener('click', handleUseInitials);
   }
 
   // Render posts list

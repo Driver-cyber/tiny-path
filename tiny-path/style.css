@@ -6,12 +6,23 @@
   box-sizing: border-box;
 }
 
+/* Prevent iOS auto-zoom on input focus (triggered when font-size < 16px) */
+input, textarea, select {
+  font-size: 16px;
+}
+
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
   background: #f4f1ee;
   color: #333;
   -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+  touch-action: pan-y; /* allow vertical scroll, block pinch-zoom on body */
 }
 
 /* =========================
@@ -348,8 +359,18 @@ body {
   font-size: 14px;
 }
 
-.filter-link { cursor: pointer; transition: color 0.15s; }
+.filter-link { cursor: pointer; transition: color 0.15s, opacity 0.15s; }
 .filter-link:hover { color: #c0392b; }
+.avatar.filter-link:hover { opacity: 0.8; color: #c0392b; }
+
+/* Avatar photo image (inside .avatar or .profile-avatar-big) */
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
 
 .timestamp {
   font-size: 12px;
@@ -768,6 +789,28 @@ body {
   object-fit: cover;
   display: block;
   border-radius: 14px;
+}
+
+/* Upload progress overlay */
+.sheet-photo-area.uploading::after {
+  content: 'Uploading…';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 14px;
+  animation: uploadPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes uploadPulse {
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 1; }
 }
 
 .sheet-change-photo {
@@ -1477,10 +1520,15 @@ body {
 .profile-cover-change:hover { background: rgba(0,0,0,0.7); }
 
 /* Big avatar */
-.profile-avatar-big {
+/* Wrapper positions avatar + camera badge together */
+.profile-avatar-wrap {
   position: absolute;
   bottom: -28px;
   left: 20px;
+  z-index: 3;
+}
+
+.profile-avatar-big {
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -1492,8 +1540,28 @@ body {
   font-weight: 700;
   font-size: 22px;
   color: #c0392b;
-  z-index: 3;
+  overflow: hidden;
 }
+
+/* Small camera badge on bottom-right of big avatar */
+.profile-avatar-badge {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #c0392b;
+  border: 2px solid #f4f1ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: background 0.15s;
+}
+.profile-avatar-badge:hover { background: #a93226; }
+.profile-avatar-badge svg { width: 11px; height: 11px; stroke: white; }
 
 /* Profile info section */
 .profile-info {
@@ -1544,7 +1612,64 @@ body {
   font-size: 12px;
   color: #aaa;
   font-weight: 500;
+  margin-top: 8px;
 }
+
+/* Initials editing row (own profile) */
+.profile-initials-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.profile-initials-label {
+  font-size: 12px;
+  color: #aaa;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.profile-initials-input {
+  width: 52px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  color: #c0392b;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.profile-initials-input:focus { border-color: #c0392b; }
+.profile-initials-save {
+  background: #f4f1ee;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.profile-initials-save:hover { background: #ebe5df; }
+.profile-use-initials-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #aaa;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  padding: 4px 0;
+  text-decoration: underline;
+  transition: color 0.15s;
+}
+.profile-use-initials-btn:hover { color: #c0392b; }
 
 /* Posts section */
 .profile-posts-header {
@@ -1623,6 +1748,125 @@ body {
 .profile-post-meta {
   font-size: 12px;
   color: #bbb;
+}
+
+/* =========================
+   COVER PHOTO CROP MODAL
+========================= */
+
+.crop-modal {
+  position: fixed;
+  inset: 0;
+  background: #111;
+  z-index: 20000;
+  display: flex;
+  flex-direction: column;
+}
+
+.crop-modal.hidden { display: none !important; }
+
+.crop-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  padding-top: max(14px, env(safe-area-inset-top));
+  background: #1c1c1e;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.crop-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+.crop-btn-cancel {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  padding: 4px 0;
+  min-width: 60px;
+}
+
+.crop-btn-cancel:hover { color: white; }
+
+.crop-btn-confirm {
+  background: #c0392b;
+  border: none;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: 20px;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  min-width: 80px;
+  text-align: center;
+}
+
+.crop-btn-confirm:hover    { background: #a93226; }
+.crop-btn-confirm:disabled { opacity: 0.5; cursor: default; }
+
+.crop-viewport {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  gap: 18px;
+}
+
+/* The crop preview window — matches the cover photo proportions */
+.crop-window {
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+  position: relative;
+  border-radius: 10px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  background: #2a2a2a;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.15);
+}
+
+.crop-window:active { cursor: grabbing; }
+
+/* Avatar crop mode — square circular preview window */
+.crop-modal--avatar .crop-window {
+  width: min(260px, 80vw);
+  height: min(260px, 80vw);
+  border-radius: 50%;
+}
+
+.crop-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: none;
+  transform-origin: center center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  /* transform is set via JS */
+}
+
+.crop-hint {
+  color: #666;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  margin: 0;
 }
 
 /* =========================

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Tiny Path</title>
 
   <!-- PWA -->
@@ -206,7 +206,7 @@
           <p class="settings-tip">Tiny Path will open like a native app — no address bar, no tabs. Just Tiny Path.</p>
 
         </div>
-        <div class="settings-version">Tiny Path v4.2 · 2026-03-28</div>
+        <div class="settings-version">Tiny Path v4.3 · 2026-03-28</div>
       </div>
     </div>
 
@@ -218,6 +218,21 @@
         <button class="profile-edit-header-btn hidden" id="profileEditBtn" aria-label="Edit bio" type="button"></button>
       </div>
       <div class="profile-overlay-body" id="profileBody"></div>
+    </div>
+
+    <!-- Cover Photo Crop Modal -->
+    <div id="cropModal" class="crop-modal hidden">
+      <div class="crop-modal-header">
+        <button id="cropCancel" class="crop-btn-cancel" type="button">Cancel</button>
+        <span class="crop-modal-title">Move &amp; Zoom</span>
+        <button id="cropConfirm" class="crop-btn-confirm" type="button">Use this</button>
+      </div>
+      <div class="crop-viewport">
+        <div class="crop-window" id="cropWindow">
+          <img id="cropImage" class="crop-img" alt="" draggable="false" />
+        </div>
+        <p class="crop-hint">Drag to reposition · Pinch to zoom</p>
+      </div>
     </div>
 
     <!-- FAB Backdrop -->
