@@ -141,6 +141,7 @@ body {
 }
 
 .auth-link-btn:hover { color: #c0392b; }
+.auth-link-btn:disabled { color: #aaa; cursor: default; text-decoration: none; }
 
 .auth-error {
   background: #fef0f0;
@@ -171,8 +172,15 @@ body {
   font-size: 15px;
   color: #666;
   line-height: 1.5;
-  margin: 0 0 24px;
+  margin: 0 0 16px;
 }
+
+.check-email-spam {
+  font-size: 13px !important;
+  color: #aaa !important;
+  margin: 0 0 8px !important;
+}
+
 
 .display-name-body {
   text-align: center;
