@@ -229,6 +229,15 @@ These were discussed and ranked by the user. Build in this order:
 
 **Status:** All changes on `dev` branch, tested on preview URL. Merge dev → main when ready.
 
+### [2026-03-28] — Resend SMTP + Auth hardening
+- **Resend SMTP configured** — auth emails now route through `hello@chadstewartcpa.com` via Resend (smtp.resend.com, port 465). Domain verified. DNS records in Cloudflare (note: domain registered on Porkbun but nameservers point to Cloudflare — always edit DNS in Cloudflare).
+- **Auth flow hardened:**
+  - Display name form: replaced `alert()` with inline error, added 30s timeout on `profiles.insert()`
+  - Signup: added 30s timeout on `signUp()` call
+  - `onAuthStateChange` profile fetch: added 20s timeout with fallback error on auth screen
+  - Check email screen: added spam folder hint + "Resend verification email" button (`supabase.auth.resend`)
+  - Tracked `pendingSignupEmail` state for resend functionality
+
 **Next features to consider:**
 - Notification / unread indicator for new posts
 - Family Path Supabase migration
