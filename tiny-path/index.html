@@ -97,6 +97,8 @@
         <div class="check-email-icon">✉️</div>
         <h2>Check your email</h2>
         <p>We sent a verification link to <strong id="sentEmailDisplay"></strong>. Click it to activate your account, then come back and sign in.</p>
+        <p class="check-email-spam">Don't see it? Check your spam folder.</p>
+        <button id="resendEmailBtn" class="auth-link-btn" type="button">Resend verification email</button>
         <button id="backToSignIn" class="auth-btn" type="button">Back to sign in</button>
       </div>
     </div>
@@ -114,7 +116,8 @@
         <p>This is the name your friends will see. You can change it anytime in Settings.</p>
         <form id="displayNameForm" class="auth-form">
           <input id="displayNameInput" placeholder="Jonathan Peeholes" maxlength="30" autocomplete="nickname" required />
-          <button type="submit" class="auth-btn">Let's go →</button>
+          <div id="displayNameError" class="auth-error hidden"></div>
+          <button type="submit" class="auth-btn" id="displayNameSubmit">Let's go →</button>
         </form>
       </div>
     </div>

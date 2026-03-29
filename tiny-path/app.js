@@ -35,6 +35,7 @@ const ICON = {
 ═══════════════════════════════════════ */
 
 let currentUser         = null;
+let pendingSignupEmail  = '';
 let currentProfile      = null;
 let allPosts            = [];
 let allVotes            = [];
@@ -100,8 +101,11 @@ const authError         = document.getElementById('authError');
 const authSubmit        = document.getElementById('authSubmit');
 const sentEmailDisplay  = document.getElementById('sentEmailDisplay');
 const backToSignIn         = document.getElementById('backToSignIn');
+const resendEmailBtn       = document.getElementById('resendEmailBtn');
 const displayNameForm      = document.getElementById('displayNameForm');
 const displayNameInput     = document.getElementById('displayNameInput');
+const displayNameSubmit    = document.getElementById('displayNameSubmit');
+const displayNameError     = document.getElementById('displayNameError');
 const forgotPasswordBtn    = document.getElementById('forgotPasswordBtn');
 const forgotPasswordForm   = document.getElementById('forgotPasswordForm');
 const forgotEmail          = document.getElementById('forgotEmail');
@@ -239,12 +243,18 @@ authForm.addEventListener('submit', async e => {
 
   try {
     if (authMode === 'signup') {
-      const { error } = await supabase.auth.signUp({
-        email, password,
-        options: { emailRedirectTo: 'https://tiny-path.pages.dev' }
-      });
+      const signupTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Could not reach the server — check your connection and try again.')), 30000)
+      );
+      const { error } = await Promise.race([
+        supabase.auth.signUp({ email, password, options: { emailRedirectTo: 'https://tiny-path.pages.dev' } }),
+        signupTimeout
+      ]);
       if (error) throw error;
+      pendingSignupEmail = email;
       sentEmailDisplay.textContent = email;
+      resendEmailBtn.disabled    = false;
+      resendEmailBtn.textContent = 'Resend verification email';
       showScreen('checkemail');
     } else {
       // Show a "still working" hint after 8s — Supabase can be slow to wake
@@ -277,6 +287,23 @@ authForm.addEventListener('submit', async e => {
 backToSignIn.addEventListener('click', () => {
   authPassword.value = '';
   showScreen('auth');
+});
+
+resendEmailBtn.addEventListener('click', async () => {
+  if (!pendingSignupEmail) return;
+  resendEmailBtn.disabled    = true;
+  resendEmailBtn.textContent = 'Sending…';
+  const { error } = await supabase.auth.resend({ type: 'signup', email: pendingSignupEmail });
+  if (error) {
+    resendEmailBtn.textContent = 'Could not resend — try again';
+    resendEmailBtn.disabled    = false;
+  } else {
+    resendEmailBtn.textContent = '✓ Sent! Check your inbox.';
+    setTimeout(() => {
+      resendEmailBtn.textContent = 'Resend verification email';
+      resendEmailBtn.disabled    = false;
+    }, 6000);
+  }
 });
 
 /* ═══════════════════════════════════════
@@ -368,24 +395,29 @@ displayNameForm.addEventListener('submit', async e => {
   const name = displayNameInput.value.trim();
   if (!name) return;
 
-  const submitBtn = displayNameForm.querySelector('.auth-btn');
-  submitBtn.disabled    = true;
-  submitBtn.textContent = 'Saving…';
+  displayNameSubmit.disabled    = true;
+  displayNameSubmit.textContent = 'Saving…';
+  displayNameError.classList.add('hidden');
 
-  const { error } = await supabase.from('profiles').insert({
-    id:           currentUser.id,
-    display_name: name
-  });
-
-  if (error) {
-    alert('Could not save your name. Please try again.');
-    submitBtn.disabled    = false;
-    submitBtn.textContent = "Let's go →";
-    return;
+  try {
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Connection timed out — please try again.')), 30000)
+    );
+    const { error } = await Promise.race([
+      supabase.from('profiles').insert({ id: currentUser.id, display_name: name }),
+      timeout
+    ]);
+    if (error) throw error;
+    currentProfile = { display_name: name };
+    initApp();
+  } catch (err) {
+    displayNameError.textContent = err.message.includes('timed out')
+      ? 'Connection timed out — please try again.'
+      : 'Could not save your name — please try again.';
+    displayNameError.classList.remove('hidden');
+    displayNameSubmit.disabled    = false;
+    displayNameSubmit.textContent = "Let's go →";
   }
-
-  currentProfile = { display_name: name };
-  initApp();
 });
 
 /* ═══════════════════════════════════════
@@ -427,11 +459,26 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
   currentUser = session.user;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('display_name, bio, cover_photo_url, avatar_url, avatar_initials, created_at')
-    .eq('id', currentUser.id)
-    .maybeSingle();
+  let profile = null;
+  try {
+    const profileTimeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 20000)
+    );
+    const { data } = await Promise.race([
+      supabase.from('profiles')
+        .select('display_name, bio, cover_photo_url, avatar_url, avatar_initials, created_at')
+        .eq('id', currentUser.id)
+        .maybeSingle(),
+      profileTimeout
+    ]);
+    profile = data;
+  } catch {
+    // Profile fetch timed out — send back to auth with a clear message
+    showScreen('auth');
+    authError.textContent = 'Signed in, but the server isn\'t responding. Please try again.';
+    authError.classList.remove('hidden');
+    return;
+  }
 
   if (!profile) {
     showScreen('displayname');
