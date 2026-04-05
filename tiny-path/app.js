@@ -688,7 +688,7 @@ function reactionBadgesHtml(postId, userReacted = false) {
   return Object.entries(map)
     .map(([emoji, count]) => {
       const mine = userReacted && hasUserReacted(postId, emoji);
-      return `<span class="reaction-badge${mine ? ' user-reacted' : ''}">${emoji}<span class="reaction-badge-count">${count}</span></span>`;
+      return `<span class="reaction-badge${mine ? ' user-reacted' : ''}" data-emoji="${emoji}">${emoji}<span class="reaction-badge-count">${count}</span></span>`;
     })
     .join('');
 }
@@ -760,7 +760,7 @@ function openEmojiPicker(postId, anchorEl) {
   bubble.innerHTML = `
     <div class="emoji-input-hint">Type or paste any emoji</div>
     <input class="emoji-input-field" type="text" inputmode="text"
-           placeholder="😊" autocomplete="off" autocorrect="off"
+           placeholder="" autocomplete="off" autocorrect="off"
            autocapitalize="off" spellcheck="false" maxlength="8" />
   `;
 
@@ -883,6 +883,13 @@ function bindPostActionsListeners(container, post) {
   });
   container.querySelector('.emoji-trigger-btn').addEventListener('click', e => {
     e.stopPropagation(); openEmojiPicker(post.id, e.currentTarget);
+  });
+  container.querySelectorAll('.reaction-badge').forEach(badge => {
+    badge.addEventListener('click', e => {
+      e.stopPropagation();
+      const emoji = badge.dataset.emoji;
+      if (emoji && hasUserReacted(post.id, emoji)) toggleReaction(post.id, emoji);
+    });
   });
   container.querySelectorAll('.post-tap').forEach(el => {
     el.addEventListener('click', e => { e.stopPropagation(); openDetail(post.id); });
@@ -1308,6 +1315,12 @@ function renderDetailBody(post) {
   detailBody.querySelector('.detail-upvote').addEventListener('click', () => castVote(post.id, 'up'));
   detailBody.querySelector('.detail-downvote').addEventListener('click', () => castVote(post.id, 'down'));
   detailBody.querySelector('.emoji-trigger-btn').addEventListener('click', e => openEmojiPicker(post.id, e.currentTarget));
+  detailBody.querySelectorAll('.reaction-badge').forEach(badge => {
+    badge.addEventListener('click', () => {
+      const emoji = badge.dataset.emoji;
+      if (emoji && hasUserReacted(post.id, emoji)) toggleReaction(post.id, emoji);
+    });
+  });
 
   if (hasActivity) {
     const toggle = detailBody.querySelector('.reactions-toggle');

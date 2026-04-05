@@ -506,6 +506,7 @@ body {
 .reaction-badge.user-reacted {
   background: #fef0f0;
   border-color: #e8a89e;
+  cursor: pointer;
 }
 
 .reaction-badge-count {
