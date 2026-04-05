@@ -17,9 +17,10 @@
 ## Supabase
 - Project ID: czaztxqhkqwoviazqaeu
 - Anon key: in app.js (public, safe)
-- Tables: posts, comments
+- Tables: posts, comments, profiles, votes, reactions
 - Auth: email + password, Email confirm is DISABLED (intentional for private app)
-- user_metadata fields used: username (display name), bio
+- profiles schema: id (PK = auth.uid()), display_name, bio, cover_photo_url, avatar_url, avatar_initials, created_at
+- IMPORTANT: if new columns are added to profiles in code, run the ALTER TABLE in Supabase immediately — missing columns cause the auth listener to timeout and show "server isn't responding"
 
 ## Image Storage Pattern
 image_url column holds either:
