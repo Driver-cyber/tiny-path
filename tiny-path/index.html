@@ -209,7 +209,7 @@
           <p class="settings-tip">Tiny Path will open like a native app — no address bar, no tabs. Just Tiny Path.</p>
 
         </div>
-        <div class="settings-version">Tiny Path v4.4 · 2026-04-04</div>
+        <div class="settings-version">Tiny Path v4.5 · 2026-04-05</div>
       </div>
     </div>
 
@@ -246,6 +246,9 @@
       <button class="radial-btn" id="radialLocation" aria-label="Share location" type="button">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
       </button>
+      <button class="radial-btn" id="radialVideo" aria-label="Share video" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      </button>
       <button class="radial-btn" id="radialPhoto" aria-label="Share photo" type="button">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </button>
@@ -275,9 +278,14 @@
           <img id="sheetPhotoPreview" class="sheet-photo-preview" alt="" />
           <button id="sheetChangePhoto" class="sheet-change-photo" type="button">Change photo</button>
         </div>
+        <div id="sheetVideoArea" class="sheet-photo-area hidden">
+          <video id="sheetVideoPreview" class="sheet-video-preview" playsinline muted preload="metadata"></video>
+          <button id="sheetChangeVideo" class="sheet-change-photo" type="button">Change video</button>
+        </div>
         <textarea id="sheetTextInput" placeholder="What's happening?" maxlength="300"></textarea>
         <div id="sheetCharCounter" class="char-counter">0 / 300</div>
         <input type="file" id="sheetImageInput" accept="image/*" hidden />
+        <input type="file" id="sheetVideoInput" accept="video/*" hidden />
       </div>
     </div>
 

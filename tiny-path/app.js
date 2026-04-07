@@ -55,9 +55,12 @@ let inPasswordRecovery  = false;
 
 // FAB / sheet state
 let fabOpen             = false;
-let sheetMode           = null;   // 'text' | 'photo' | 'location'
+let sheetMode           = null;   // 'text' | 'photo' | 'video' | 'location'
 let sheetImageFile      = null;
+let sheetVideoFile      = null;
 let sheetLocation       = null;
+
+const VIDEO_SIZE_LIMIT  = 50 * 1024 * 1024; // 50 MB
 
 // Emoji picker state
 let emojiPickerPostId   = null;
@@ -174,6 +177,7 @@ const fabContainer      = document.getElementById('fabContainer');
 const fab               = document.getElementById('fab');
 const fabBackdrop       = document.getElementById('fabBackdrop');
 const radialLocation    = document.getElementById('radialLocation');
+const radialVideo       = document.getElementById('radialVideo');
 const radialPhoto       = document.getElementById('radialPhoto');
 const radialText        = document.getElementById('radialText');
 const postSheet         = document.getElementById('postSheet');
@@ -185,6 +189,10 @@ const sheetImageInput   = document.getElementById('sheetImageInput');
 const sheetPhotoArea    = document.getElementById('sheetPhotoArea');
 const sheetPhotoPreview = document.getElementById('sheetPhotoPreview');
 const sheetChangePhoto  = document.getElementById('sheetChangePhoto');
+const sheetVideoInput   = document.getElementById('sheetVideoInput');
+const sheetVideoArea    = document.getElementById('sheetVideoArea');
+const sheetVideoPreview = document.getElementById('sheetVideoPreview');
+const sheetChangeVideo  = document.getElementById('sheetChangeVideo');
 const sheetLocationPill = document.getElementById('sheetLocationPill');
 const sheetLocationText = document.getElementById('sheetLocationText');
 
@@ -948,6 +956,7 @@ function renderFeed() {
       ${post.location  ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ''}
       ${post.text      ? `<div class="text post-tap">${esc(post.text)}</div>` : ''}
       ${post.image_url ? `<img src="${esc(post.image_url)}" class="post-image" loading="lazy" />` : ''}
+      ${post.video_url ? `<video src="${esc(post.video_url)}" class="post-video" controls playsinline preload="metadata"></video>` : ''}
       ${buildPostActionsHtml(post)}
     `;
 
@@ -1015,6 +1024,7 @@ function closeFab() {
 ═══════════════════════════════════════ */
 
 radialText.addEventListener('click', () => { closeFab(); openSheet('text'); });
+radialVideo.addEventListener('click', () => { closeFab(); openSheet('video'); });
 radialPhoto.addEventListener('click', () => { closeFab(); openSheet('photo'); });
 radialLocation.addEventListener('click', () => { closeFab(); openSheet('location'); });
 
@@ -1025,12 +1035,14 @@ radialLocation.addEventListener('click', () => { closeFab(); openSheet('location
 function openSheet(mode) {
   sheetMode      = mode;
   sheetImageFile = null;
+  sheetVideoFile = null;
   sheetLocation  = null;
 
   sheetTextInput.value         = '';
   sheetCharCounter.textContent = `0 / ${CHAR_LIMIT}`;
   sheetCharCounter.classList.remove('char-near', 'char-over');
   sheetPhotoArea.classList.add('hidden');
+  sheetVideoArea.classList.add('hidden');
   sheetLocationPill.classList.add('hidden');
   sheetSubmit.disabled = true;
 
@@ -1045,6 +1057,12 @@ function openSheet(mode) {
     sheetImageInput.value = '';
     sheetImageInput.click();
 
+  } else if (mode === 'video') {
+    sheetTextInput.placeholder = 'Add a caption… (optional)';
+    postSheet.classList.remove('hidden');
+    sheetVideoInput.value = '';
+    sheetVideoInput.click();
+
   } else if (mode === 'location') {
     sheetTextInput.placeholder = 'Add a note… (optional)';
     sheetLocationPill.classList.remove('hidden');
@@ -1058,9 +1076,11 @@ function closeSheet() {
   postSheet.classList.add('hidden');
   sheetMode      = null;
   sheetImageFile = null;
+  sheetVideoFile = null;
   sheetLocation  = null;
   sheetTextInput.value = '';
   sheetPhotoArea.classList.add('hidden');
+  sheetVideoArea.classList.add('hidden');
   sheetLocationPill.classList.add('hidden');
   sheetSubmit.disabled = true;
 }
@@ -1083,10 +1103,12 @@ sheetTextInput.addEventListener('input', () => {
 function updateSheetSubmitState() {
   const hasText     = sheetTextInput.value.trim().length > 0;
   const hasPhoto    = !!sheetImageFile;
+  const hasVideo    = !!sheetVideoFile;
   const hasLocation = !!sheetLocation;
 
   if (sheetMode === 'text')     sheetSubmit.disabled = !hasText;
   if (sheetMode === 'photo')    sheetSubmit.disabled = !hasPhoto;
+  if (sheetMode === 'video')    sheetSubmit.disabled = !hasVideo;
   if (sheetMode === 'location') sheetSubmit.disabled = !hasLocation;
 }
 
@@ -1106,6 +1128,29 @@ sheetImageInput.addEventListener('change', () => {
 sheetChangePhoto.addEventListener('click', () => {
   sheetImageInput.value = '';
   sheetImageInput.click();
+});
+
+/* ═══════════════════════════════════════
+   POST SHEET — VIDEO HANDLING
+═══════════════════════════════════════ */
+
+sheetVideoInput.addEventListener('change', () => {
+  const file = sheetVideoInput.files[0];
+  if (!file) return;
+  if (file.size > VIDEO_SIZE_LIMIT) {
+    showToast('Video is over 50 MB — please trim or compress it first.');
+    sheetVideoInput.value = '';
+    return;
+  }
+  sheetVideoFile = file;
+  sheetVideoPreview.src = URL.createObjectURL(file);
+  sheetVideoArea.classList.remove('hidden');
+  updateSheetSubmitState();
+});
+
+sheetChangeVideo.addEventListener('click', () => {
+  sheetVideoInput.value = '';
+  sheetVideoInput.click();
 });
 
 /* ═══════════════════════════════════════
@@ -1149,9 +1194,9 @@ sheetSubmit.addEventListener('click', async () => {
 
   try {
     let image_url = null;
+    let video_url = null;
 
     if (sheetImageFile) {
-      // Show upload indicator over the photo preview
       sheetSubmit.textContent = 'Uploading…';
       sheetPhotoArea.classList.add('uploading');
 
@@ -1168,11 +1213,29 @@ sheetSubmit.addEventListener('click', async () => {
       sheetSubmit.textContent = 'Posting…';
     }
 
+    if (sheetVideoFile) {
+      sheetSubmit.textContent = 'Uploading…';
+      sheetVideoArea.classList.add('uploading');
+
+      const formData = new FormData();
+      formData.append('file', sheetVideoFile);
+      formData.append('upload_preset', UPLOAD_PRESET);
+      const res  = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`, {
+        method: 'POST', body: formData
+      });
+      const data = await res.json();
+      video_url  = data.secure_url;
+
+      sheetVideoArea.classList.remove('uploading');
+      sheetSubmit.textContent = 'Posting…';
+    }
+
     await supabase.from('posts').insert({
       user_id:      currentUser.id,
       display_name: currentProfile.display_name,
       text:         text || null,
       image_url,
+      video_url,
       location:     sheetLocation || null
     });
 
@@ -1180,6 +1243,7 @@ sheetSubmit.addEventListener('click', async () => {
     closeSheet();
   } catch {
     sheetPhotoArea.classList.remove('uploading');
+    sheetVideoArea.classList.remove('uploading');
     sheetSubmit.disabled    = false;
     sheetSubmit.textContent = 'Post';
     alert('Could not post. Please try again.');
@@ -1294,6 +1358,7 @@ function renderDetailBody(post) {
       ${post.location  ? `<div class="location-pill">📍 ${esc(post.location)}</div>` : ''}
       ${post.text      ? `<div class="text">${esc(post.text)}</div>` : ''}
       ${post.image_url ? `<img src="${esc(post.image_url)}" class="detail-image" />` : ''}
+      ${post.video_url ? `<video src="${esc(post.video_url)}" class="detail-video" controls playsinline preload="metadata"></video>` : ''}
       <div class="detail-votes">
         <button class="vote-btn detail-upvote${userVote?.vote_type === 'up'   ? ' vote-active vote-up'   : ''}">${ICON.thumbsUp}   <span>${upCount}</span></button>
         <button class="vote-btn detail-downvote${userVote?.vote_type === 'down' ? ' vote-active vote-down' : ''}">${ICON.thumbsDown} <span>${downCount}</span></button>
@@ -1371,6 +1436,7 @@ function renderDetailBodyEdit(post) {
         <button id="saveEdit"   class="save-edit-btn">Save</button>
       </div>
       ${post.image_url ? `<img src="${esc(post.image_url)}" class="detail-image" />` : ''}
+      ${post.video_url ? `<video src="${esc(post.video_url)}" class="detail-video" controls playsinline preload="metadata"></video>` : ''}
     </div>
   `;
 
