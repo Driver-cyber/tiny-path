@@ -465,6 +465,14 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   // Don't proceed to app while the user is mid-password-reset
   if (inPasswordRecovery) return;
 
+  // Already in the app — silently refresh the session reference and stop.
+  // This prevents mid-session re-auth events (iOS wake-from-background, token
+  // reissue, etc.) from re-running init or triggering the timeout error.
+  if (appInitialized) {
+    currentUser = session.user;
+    return;
+  }
+
   currentUser = session.user;
 
   let profile = null;
