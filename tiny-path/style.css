@@ -691,35 +691,36 @@ body {
 
 /*
   Fan from bottom-right corner toward screen center (upper-left).
-  4 buttons sweep evenly from "almost straight up" to "almost straight left".
-  Order: Location(1)=up, Video(2)=31°, Photo(3)=54°, Text(4)=left.
+  4 buttons at r=130px, evenly spread from 5° to 85° (arc of 80°).
+  Each button is ~60px center-to-center from its neighbours — no overlap.
+  Order: Location(1)=up, Video(2)=31.7°, Photo(3)=58.3°, Text(4)=left.
   Delays: Text first (0s) → Photo (0.04s) → Video (0.08s) → Location last (0.12s).
 */
 
-/* #1 radialLocation → almost straight up */
+/* #1 radialLocation → almost straight up (5°) */
 .fab-container.open .radial-btn:nth-child(1) {
-  transform: translate(-15px, -112px) scale(1);
+  transform: translate(-11px, -130px) scale(1);
   opacity: 1;
   transition-delay: 0.12s;
 }
 
-/* #2 radialVideo → 31° from up */
+/* #2 radialVideo → 31.7° from up */
 .fab-container.open .radial-btn:nth-child(2) {
-  transform: translate(-58px, -97px) scale(1);
+  transform: translate(-68px, -111px) scale(1);
   opacity: 1;
   transition-delay: 0.08s;
 }
 
-/* #3 radialPhoto → 54° from up */
+/* #3 radialPhoto → 58.3° from up */
 .fab-container.open .radial-btn:nth-child(3) {
-  transform: translate(-91px, -66px) scale(1);
+  transform: translate(-111px, -68px) scale(1);
   opacity: 1;
   transition-delay: 0.04s;
 }
 
-/* #4 radialText → almost straight left */
+/* #4 radialText → almost straight left (85°) */
 .fab-container.open .radial-btn:nth-child(4) {
-  transform: translate(-112px, -15px) scale(1);
+  transform: translate(-130px, -11px) scale(1);
   opacity: 1;
   transition-delay: 0s;
 }
