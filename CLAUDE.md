@@ -83,8 +83,9 @@ The shared emotional design goal: *a digital journal you share with your closest
 - **Radial FAB:** Bottom-right corner. Red floating button fans out 3 options (Text/pencil, Photo/camera, Location/pin) in an arc toward screen center (upper-left). Backdrop tap closes. Haptic on open.
 - **Post Sheet:** Bottom sheet with Cancel/Post header, handle bar, char counter (300). Text mode focuses textarea. Photo mode triggers file picker immediately. Location mode auto-fetches via Nominatim.
 - **Votes:** Per-user, one vote per post, mutual exclusivity (up cancels down and vice versa). Toggle same type to remove. Active vote highlighted (up=red, down=slate). Stored in `votes` table.
-- **Emoji Reactions:** 16-emoji curated picker (❤️🔥😂😮😢😡🎉👀😍🙌💯🫶✨💀🤣😭). Floating above trigger. Per user per emoji per post. Badge display on feed cards.
+- **Emoji Reactions:** Native emoji keyboard — floating input bubble, Intl.Segmenter extracts first grapheme. Per user per emoji per post. Badge display on feed cards. Tap own badge to remove reaction.
 - **Reaction Breakdown:** "See who reacted ▾" in post detail. Expands to show each reaction/vote with the display names of users who did it.
+- **Video Posts:** 4th radial FAB button (film icon). Triggers file picker, 50MB client-side guard, uploads to Cloudinary /video/upload. Stored in posts.video_url. Rendered as native `<video controls playsinline>` in feed and detail.
 - **Post Edit:** Owner-only. Text field only (images and location not editable). Accessed from detail view.
 - **Post Delete:** Owner or moderator (`cstewch@gmail.com`). Accessed from detail view. Confirmation dialog.
 - **Comments:** Flat list in post detail. Posted under logged-in display name. Realtime via postgres_changes.
@@ -107,12 +108,10 @@ The shared emotional design goal: *a digital journal you share with your closest
 
 ## 🚫 Parking Lot (Do Not Build Yet)
 
-- Avatar photo uploads
+- Notification / unread indicator for new posts
+- Post deletion confirmation UI improvement (replace browser confirm())
 - Invite code gate
 - Music sharing
 - Dark mode
 - Threaded comments
-- Multi-photo upload (was in prior docs but not in current code)
-- Profile view overlay (was in prior docs but not in current code)
-- Auto-hyperlink URLs in post text
 - Family Path Supabase migration (needs separate project)

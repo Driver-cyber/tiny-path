@@ -1,42 +1,82 @@
-# Tiny Path — Project Memory
+# Tiny Path — Technical Memory
 
-## Status
-V2 shipped 2026-02-26. V1 was at https://peaceful-speculoos-c9dc9a.netlify.app/ (drag-and-drop Netlify, no CLI).
+## Current State
+**Version:** v4.7 · 2026-04-09
+**Live URL:** https://tiny-path.pages.dev
+**Repo:** github.com/Driver-cyber/tiny-path
+**Deployment:** Cloudflare Pages, auto-deploys on push to main
+**Active branch:** main (dev branch kept in sync via reverse-merge PRs)
 
-## Key Files
-- `index.html` — shell, PWA meta, modals
+## Key Files (all inside tiny-path/ subfolder)
+- `index.html` — shell, PWA meta, all overlays (auth, detail, profile, settings, image modal, crop modal)
 - `app.js` — all JS logic (ES modules, no bundler)
 - `style.css` — all styles
 - `manifest.json` — PWA manifest
-- `sw.js` — service worker (caches shell only)
-- `icon.svg` — SVG icon (browser favicon); PNG icons needed for iOS
-- `apptxtfilejs.txt` — old V1 JS backup, no longer used
+- `sw.js` — service worker (network-first shell, cache-first images)
+- `robots.txt` — disallow all crawlers
 
-## Stack (locked)
-Firebase Firestore (project: tiny-path-b9bb4) · Cloudinary (dqqml8dae / tiny-path-unsigned) · OpenStreetMap Nominatim · Netlify drag-and-drop
+## Supabase
+- Project ID: czaztxqhkqwoviazqaeu
+- Anon key: in app.js (public, safe)
+- Tables: posts, comments, profiles, votes, reactions
+- Auth: email + password, Email confirm is DISABLED (intentional for private app)
+- profiles schema: id (PK = auth.uid()), display_name, bio, cover_photo_url, avatar_url, avatar_initials, created_at
+- posts schema includes: video_url text (added v4.5)
+- IMPORTANT: if new columns are added to profiles in code, run the ALTER TABLE in Supabase immediately — missing columns cause the auth listener to timeout and show "server isn't responding"
 
-## V2 Architecture Notes
-- `allPosts` array holds all Firestore docs; `renderFeed()` re-renders from it (filter-aware)
-- Comments: `posts/{id}/comments` subcollection, `onSnapshot` subscribed on detail open, unsubscribed on close
-- Votes: Firestore `increment(1)` on `upvotes`/`downvotes` fields directly on post doc
-- User filter: client-side on `allPosts`, no extra Firestore query
-- iOS install prompt: auto-shows once per session via `sessionStorage`, also via settings gear ⚙️
+## Image & Video Storage Pattern
+- `image_url` column: plain string → single image URL (legacy + new single uploads)
+- `video_url` column: single video URL (Cloudinary /video/upload endpoint)
+- Use parseImages(image_url) helper in app.js to normalize both cases for images.
+- Videos are always a single URL — no multi-video support.
 
-## V2.1 Features (added after initial V2 deploy)
-- **SVG icons** — all emoji replaced with inline Feather-style SVGs. ICON constants in app.js for dynamic buttons. SVG in HTML for static (mode bar, settings gear).
-- **Char counter** — `#charCounter` div, 300 char soft limit, turns orange at 270, red at 300
-- **Image-only cards** — `.post--image-only` class when `imageUrl && !text`, image fills edge-to-edge
-- **Haptic feedback** — `navigator.vibrate(12)` on all vote buttons (Android; graceful no-op on iOS)
-- **Full timestamp in detail** — `fullTimestamp()` shows "Feb 26, 2026, 3:45 PM"
-- **Web Share API** — share button in detail-votes, hidden if `navigator.share` not supported
-- **Swipe-to-close** — touch events on `#detailHeader` (not body), 90px threshold, snaps back below
-- **Drag pill** — `::before` pseudo-element on `.detail-header` as visual affordance
+## Version Bump Checklist (before every deploy)
+1. Bump version string in index.html settings footer → "Tiny Path vX.Y · YYYY-MM-DD"
+2. Bump CACHE_VERSION in sw.js → "tinypath-vX.Y"
+3. (No VERSION constant in app.js — version lives in index.html only)
 
-## Icon TODO
-User needs to provide `icon-180.png` (180×180), `icon-192.png`, `icon-512.png` for full iOS PWA icon support. Recommend favicon.io or pwabuilder.com to generate from the SVG.
+## Architecture Notes
+- allPosts array holds all posts; renderFeed() re-renders from it (filter-aware)
+- allProfiles map (userId → profile row) cached in loadPosts() for avatar rendering
+- Comments: loaded fresh on detail open, realtime via channel subscription, unsubscribed on close
+- Votes: votes table with UNIQUE(post_id, user_id), toggling same type removes it
+- Reactions: reactions table with UNIQUE(post_id, user_id, emoji), multiple emoji per user allowed
+- Feed realtime: single postgres_changes channel, re-fetches all posts on any change
+- Auth state: onAuthStateChange handles login, logout, and session restore on page load
+- TOKEN_REFRESHED / re-SIGNED_IN mid-session: guarded by appInitialized flag — does NOT re-run profile fetch or risk kicking user to login screen
 
-## User Preferences
-- Measure twice, propose before multi-file changes
-- No new deps/frameworks without DECISIONS.md update
-- Prefer targeted edits (str_replace) over full rewrites
-- Ask "Are we pivoting or extending?" on contradictory requests
+## Radial FAB
+- 4 buttons fan from bottom-right corner toward upper-left at r=130px
+- Order (nth-child): Location(1,5°), Video(2,31.7°), Photo(3,58.3°), Text(4,85°)
+- Stagger delays: Text(0s) → Photo(0.04s) → Video(0.08s) → Location(0.12s)
+- Video button triggers file picker immediately; 50MB client-side size guard
+
+## iOS Quirks Handled
+- font-size: 16px on all inputs (prevents auto-zoom)
+- user-scalable=no in viewport meta
+- File input wrapped in <label> for reliable photo picker trigger
+- touch-action: pan-y on body (no pinch zoom except in crop tool)
+- gesturestart/gesturechange blocked at document level
+
+## CSS Architecture
+- Mobile-first — no desktop breakpoints needed (private mobile app)
+- Color palette: #c0392b (red brand), #f4f1ee (warm white bg), #222 (primary text)
+- All grays at WCAG AA or better: #666, #767676 for secondary text
+
+## Error Handling Patterns (as of v4.7)
+- All Cloudinary uploads validate data.secure_url exists before proceeding (throws on failure)
+- deletePost, submitComment, castVote, toggleReaction all surface errors via showToast()
+- No alert() calls remain — all errors use showToast() or inline error text
+- submitComment restores input value if insert fails so user doesn't lose their text
+- Object URLs (photo/video previews) are revoked in closeSheet() and on file swap
+- Crop tool mouse listeners (mousemove/mouseup) added per-drag and removed in closeCropModal()
+- Location submit button disabled when geolocation fails or is denied
+
+## Known Limitations / Future Debt
+- Feed rebuilds full DOM on every realtime update (renderFeed clears innerHTML)
+- Comment list also full-rebuilds on each new comment (could append instead)
+- Moderator delete enforced client-side only (RLS policy should also enforce it)
+- Member since derived from posts, not auth created_at
+- No vote deduplication beyond the UNIQUE constraint
+- Multi-photo remove-one not supported (clear all or nothing)
+- Family Path still on Firebase (migration blocked by Supabase free tier)

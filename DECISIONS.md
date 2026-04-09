@@ -12,7 +12,7 @@
 
 **Vibe:** "Warm & Considered." Utility first, beauty close behind. Ship, learn, iterate.
 
-**Current Version:** v4.3 · 2026-03-28
+**Current Version:** v4.7 · 2026-04-09
 
 | App | URL | Backend |
 |---|---|---|
@@ -227,12 +227,40 @@ These were discussed and ranked by the user. Build in this order:
 - **DB change:** `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url text; ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_initials text;`
 - **Version bump:** `tinypath-v4.3` in sw.js
 
-**Status:** All changes on `dev` branch, tested on preview URL. Merge dev → main when ready.
+### [2026-04-04] — Emoji UX fixes, tappable reaction badges (v4.4)
+- **Emoji input placeholder removed** — the `😊` placeholder in the emoji input box was confusing (looked pre-selected). Now empty; hint text above is sufficient.
+- **Tap reaction badge to remove own reaction** — each badge has `data-emoji` attribute. Tapping a badge where `hasUserReacted()` is true calls `toggleReaction()` to remove. Tapping others' badges does nothing. `user-reacted` badges show pointer cursor.
 
-**Next features to consider:**
+### [2026-04-05] — Video upload via radial FAB (v4.5)
+- **4th radial button** — film icon added to FAB arc between Location and Photo.
+- **FAB arc rebalanced** — 4 buttons at r=130px, evenly spread 5°–85°: Location, Video, Photo, Text. ~60px center-to-center spacing, no overlap.
+- **Video sheet mode** — triggers file picker immediately; shows `<video>` preview + "Change video" button (mirrors photo mode).
+- **50 MB client-side guard** — toast warning shown, upload blocked if file exceeds limit.
+- **Cloudinary video upload** — `/video/upload` endpoint, same preset as images.
+- **DB change:** `ALTER TABLE posts ADD COLUMN IF NOT EXISTS video_url text;`
+- **Feed + detail render** — `<video controls playsinline preload="metadata">`, max 360px feed / 480px detail.
+
+### [2026-04-07] — Fix mid-session auth kickout (v4.6)
+- **Root cause:** iOS PWA fires a fresh `SIGNED_IN` event when waking from background. This re-triggered the profile fetch in `onAuthStateChange`, which could timeout and show "server isn't responding" — kicking logged-in users to the login screen.
+- **Fix:** Added `if (appInitialized) { currentUser = session.user; return; }` guard in the auth listener. Once in the app, re-auth events silently update the session reference only, never re-run initialization.
+
+### [2026-04-09] — Comprehensive error handling & reliability refactor (v4.7)
+- **Cloudinary responses validated** — all upload paths (image, video, avatar, cover) now check `data.secure_url` exists before proceeding; throw on failure instead of silently posting with no media.
+- **deletePost error handling** — `showToast()` on failure instead of silent swallow.
+- **submitComment error handling** — restores the input value on failure so user doesn't lose their text; `showToast()` on error.
+- **No more `alert()`** — post submit error and edit save error now use `showToast()` for consistent UX.
+- **Location submit disabled on failure** — submit button disabled when geolocation fetch fails or permission is denied.
+- **Object URL memory leak fixed** — photo/video preview object URLs tracked (`sheetImageObjectURL`, `sheetVideoObjectURL`) and revoked in `closeSheet()` and on file swap.
+- **Crop tool mouse listener leak fixed** — `mousemove`/`mouseup` now added per-drag gesture and removed in `closeCropModal()`.
+- **Dead state removed** — `emojiPickerPostId` was set but never read; removed entirely.
+
+---
+
+## 🔜 Next Up (Prioritized Backlog)
+
 - Notification / unread indicator for new posts
+- Post deletion confirmation UI improvement (replace browser `confirm()` dialog)
 - Family Path Supabase migration
-- Post deletion confirmation UI improvement (replace `confirm()` dialog)
 
 ---
 
