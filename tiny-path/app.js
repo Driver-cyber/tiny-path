@@ -11,8 +11,6 @@ const CLOUD_NAME        = 'dqqml8dae';
 const UPLOAD_PRESET     = 'tiny-path-unsigned';
 const CHAR_LIMIT        = 300;
 
-// EMOJIS constant kept for reference but no longer used for the custom picker
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ═══════════════════════════════════════
@@ -57,13 +55,14 @@ let inPasswordRecovery  = false;
 let fabOpen             = false;
 let sheetMode           = null;   // 'text' | 'photo' | 'video' | 'location'
 let sheetImageFile      = null;
+let sheetImageObjectURL = null;
 let sheetVideoFile      = null;
+let sheetVideoObjectURL = null;
 let sheetLocation       = null;
 
 const VIDEO_SIZE_LIMIT  = 50 * 1024 * 1024; // 50 MB
 
 // Emoji picker state
-let emojiPickerPostId   = null;
 let emojiPickerEl       = null;
 
 // Profile overlay state
@@ -769,7 +768,6 @@ async function toggleReaction(postId, emoji) {
 
 function openEmojiPicker(postId, anchorEl) {
   closeEmojiPicker();
-  emojiPickerPostId = postId;
 
   const bubble = document.createElement('div');
   bubble.className = 'emoji-input-bubble';
@@ -832,7 +830,6 @@ function handlePickerOutsideClick(e) {
 
 function closeEmojiPicker() {
   if (emojiPickerEl) { emojiPickerEl.remove(); emojiPickerEl = null; }
-  emojiPickerPostId = null;
   document.removeEventListener('click', handlePickerOutsideClick, { capture: true });
 }
 
@@ -1086,6 +1083,8 @@ function closeSheet() {
   sheetImageFile = null;
   sheetVideoFile = null;
   sheetLocation  = null;
+  if (sheetImageObjectURL) { URL.revokeObjectURL(sheetImageObjectURL); sheetImageObjectURL = null; }
+  if (sheetVideoObjectURL) { URL.revokeObjectURL(sheetVideoObjectURL); sheetVideoObjectURL = null; }
   sheetTextInput.value = '';
   sheetPhotoArea.classList.add('hidden');
   sheetVideoArea.classList.add('hidden');
@@ -1127,8 +1126,10 @@ function updateSheetSubmitState() {
 sheetImageInput.addEventListener('change', () => {
   const file = sheetImageInput.files[0];
   if (!file) return;
-  sheetImageFile = file;
-  sheetPhotoPreview.src = URL.createObjectURL(file);
+  if (sheetImageObjectURL) URL.revokeObjectURL(sheetImageObjectURL);
+  sheetImageFile      = file;
+  sheetImageObjectURL = URL.createObjectURL(file);
+  sheetPhotoPreview.src = sheetImageObjectURL;
   sheetPhotoArea.classList.remove('hidden');
   updateSheetSubmitState();
 });
@@ -1150,8 +1151,10 @@ sheetVideoInput.addEventListener('change', () => {
     sheetVideoInput.value = '';
     return;
   }
-  sheetVideoFile = file;
-  sheetVideoPreview.src = URL.createObjectURL(file);
+  if (sheetVideoObjectURL) URL.revokeObjectURL(sheetVideoObjectURL);
+  sheetVideoFile      = file;
+  sheetVideoObjectURL = URL.createObjectURL(file);
+  sheetVideoPreview.src = sheetVideoObjectURL;
   sheetVideoArea.classList.remove('hidden');
   updateSheetSubmitState();
 });
@@ -1184,9 +1187,13 @@ async function fetchLocation() {
         updateSheetSubmitState();
       } catch {
         sheetLocationText.textContent = 'Could not fetch location';
+        sheetSubmit.disabled = true;
       }
     },
-    () => { sheetLocationText.textContent = 'Location permission denied'; }
+    () => {
+      sheetLocationText.textContent = 'Location permission denied';
+      sheetSubmit.disabled = true;
+    }
   );
 }
 
@@ -1216,6 +1223,7 @@ sheetSubmit.addEventListener('click', async () => {
       });
       const data = await res.json();
       image_url  = data.secure_url;
+      if (!image_url) throw new Error('Image upload failed — no URL returned');
 
       sheetPhotoArea.classList.remove('uploading');
       sheetSubmit.textContent = 'Posting…';
@@ -1233,6 +1241,7 @@ sheetSubmit.addEventListener('click', async () => {
       });
       const data = await res.json();
       video_url  = data.secure_url;
+      if (!video_url) throw new Error('Video upload failed — no URL returned');
 
       sheetVideoArea.classList.remove('uploading');
       sheetSubmit.textContent = 'Posting…';
@@ -1254,7 +1263,7 @@ sheetSubmit.addEventListener('click', async () => {
     sheetVideoArea.classList.remove('uploading');
     sheetSubmit.disabled    = false;
     sheetSubmit.textContent = 'Post';
-    alert('Could not post. Please try again.');
+    showToast('Could not post. Please try again.');
   }
 });
 
@@ -1469,7 +1478,7 @@ function renderDetailBodyEdit(post) {
     if (error) {
       saveBtn.disabled    = false;
       saveBtn.textContent = 'Save';
-      alert('Could not save. Try again.');
+      showToast('Could not save. Try again.');
     }
   });
 
@@ -1484,7 +1493,8 @@ function renderDetailBodyEdit(post) {
 
 async function deletePost(postId) {
   if (!confirm('Delete this post? This cannot be undone.')) return;
-  await supabase.from('posts').delete().eq('id', postId);
+  const { error } = await supabase.from('posts').delete().eq('id', postId);
+  if (error) showToast('Could not delete post. Try again.');
 }
 
 /* ═══════════════════════════════════════
@@ -1542,12 +1552,16 @@ async function submitComment() {
   const text = commentInput.value.trim();
   if (!text || !currentDetailPostId) return;
   commentInput.value = '';
-  await supabase.from('comments').insert({
+  const { error } = await supabase.from('comments').insert({
     post_id:      currentDetailPostId,
     user_id:      currentUser.id,
     display_name: currentProfile.display_name,
     text
   });
+  if (error) {
+    commentInput.value = text; // restore so user doesn't lose their comment
+    showToast('Could not post comment. Try again.');
+  }
 }
 
 commentSubmit.addEventListener('click', submitComment);
@@ -1708,6 +1722,8 @@ function closeCropModal() {
   cropOnConfirm = null;
   cropConfirm.disabled    = false;
   cropConfirm.textContent = 'Use this';
+  window.removeEventListener('mousemove', onCropMouseMove);
+  window.removeEventListener('mouseup',  onCropMouseUp);
   // Don't restore overflow — profile overlay is still open underneath
 }
 
@@ -1822,7 +1838,16 @@ cropWindowEl.addEventListener('touchmove', e => {
 
 cropWindowEl.addEventListener('touchend', () => { cropPanActive = false; }, { passive: true });
 
-// Mouse (desktop testing)
+// Mouse (desktop testing) — named so they can be removed in closeCropModal
+function onCropMouseMove(e) {
+  if (!cropPanActive) return;
+  cropOffsetX = cropPanStartOX + (e.clientX - cropPanStartX);
+  cropOffsetY = cropPanStartOY + (e.clientY - cropPanStartY);
+  clampCropOffset();
+  updateCropTransform();
+}
+function onCropMouseUp() { cropPanActive = false; }
+
 cropWindowEl.addEventListener('mousedown', e => {
   cropPanActive  = true;
   cropPanStartX  = e.clientX;
@@ -1830,15 +1855,9 @@ cropWindowEl.addEventListener('mousedown', e => {
   cropPanStartOX = cropOffsetX;
   cropPanStartOY = cropOffsetY;
   e.preventDefault();
+  window.addEventListener('mousemove', onCropMouseMove);
+  window.addEventListener('mouseup',  onCropMouseUp);
 });
-window.addEventListener('mousemove', e => {
-  if (!cropPanActive) return;
-  cropOffsetX = cropPanStartOX + (e.clientX - cropPanStartX);
-  cropOffsetY = cropPanStartOY + (e.clientY - cropPanStartY);
-  clampCropOffset();
-  updateCropTransform();
-});
-window.addEventListener('mouseup', () => { cropPanActive = false; });
 cropWindowEl.addEventListener('wheel', e => {
   e.preventDefault();
   cropUserScale = Math.max(0.2, Math.min(5, cropUserScale * (e.deltaY > 0 ? 0.93 : 1.07)));
