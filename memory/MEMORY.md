@@ -1,7 +1,7 @@
 # Tiny Path — Technical Memory
 
 ## Current State
-**Version:** v4.7 · 2026-04-09
+**Version:** v4.8 · 2026-04-09
 **Live URL:** https://tiny-path.pages.dev
 **Repo:** github.com/Driver-cyber/tiny-path
 **Deployment:** Cloudflare Pages, auto-deploys on push to main

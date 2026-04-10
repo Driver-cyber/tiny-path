@@ -1509,6 +1509,7 @@ async function loadComments(postId) {
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
 
+  if (currentDetailPostId !== postId) return; // detail was closed before fetch completed
   allComments = data || [];
   renderComments();
 }
@@ -1520,10 +1521,9 @@ function subscribeCommentsRealtime(postId) {
       event: 'INSERT', schema: 'public', table: 'comments',
       filter: `post_id=eq.${postId}`
     }, ({ new: comment }) => {
-      if (!allComments.find(c => c.id === comment.id)) {
-        allComments.push(comment);
-        renderComments();
-      }
+      if (allComments.find(c => c.id === comment.id)) return;
+      allComments.push(comment);
+      appendComment(comment);
     })
     .subscribe();
 }
@@ -1539,12 +1539,17 @@ function renderComments() {
     commentList.innerHTML = '<p class="no-comments">No comments yet — say something!</p>';
     return;
   }
-  allComments.forEach(c => {
-    const el = document.createElement('div');
-    el.className = 'comment';
-    el.innerHTML = `<span class="comment-user">${esc(c.display_name)}</span><span class="comment-text">${esc(c.text)}</span>`;
-    commentList.appendChild(el);
-  });
+  allComments.forEach(c => appendComment(c));
+  commentList.scrollTop = commentList.scrollHeight;
+}
+
+function appendComment(c) {
+  const existing = commentList.querySelector('p.no-comments');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'comment';
+  el.innerHTML = `<span class="comment-user">${esc(c.display_name)}</span><span class="comment-text">${esc(c.text)}</span>`;
+  commentList.appendChild(el);
   commentList.scrollTop = commentList.scrollHeight;
 }
 
@@ -2144,24 +2149,26 @@ function renderProfileOverlay(userId, profile, posts) {
     }
 
     // "Use initials" — remove avatar photo
-    function handleUseInitials() {
-      supabase.from('profiles').update({ avatar_url: null }).eq('id', currentUser.id)
-        .then(({ error }) => {
-          if (error) { showToast('Could not remove photo.'); return; }
+    async function handleUseInitials() {
+      try {
+        const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', currentUser.id);
+        if (error) throw error;
 
-          currentProfile.avatar_url = null;
-          profile.avatar_url        = null;
-          if (allProfiles[currentUser.id]) allProfiles[currentUser.id].avatar_url = null;
+        currentProfile.avatar_url = null;
+        profile.avatar_url        = null;
+        if (allProfiles[currentUser.id]) allProfiles[currentUser.id].avatar_url = null;
 
-          const curInitials = profile.avatar_initials || letter;
-          const bigAvatar = profileBody.querySelector('.profile-avatar-big');
-          if (bigAvatar) bigAvatar.textContent = curInitials;
+        const curInitials = profile.avatar_initials || letter;
+        const bigAvatar = profileBody.querySelector('.profile-avatar-big');
+        if (bigAvatar) bigAvatar.textContent = curInitials;
 
-          const useBtn = document.getElementById('profileUseInitials');
-          if (useBtn) useBtn.remove();
+        const useBtn = document.getElementById('profileUseInitials');
+        if (useBtn) useBtn.remove();
 
-          renderFeed();
-        });
+        renderFeed();
+      } catch {
+        showToast('Could not remove photo.');
+      }
     }
 
     const useInitialsBtn = document.getElementById('profileUseInitials');

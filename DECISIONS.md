@@ -12,7 +12,7 @@
 
 **Vibe:** "Warm & Considered." Utility first, beauty close behind. Ship, learn, iterate.
 
-**Current Version:** v4.7 · 2026-04-09
+**Current Version:** v4.8 · 2026-04-09
 
 | App | URL | Backend |
 |---|---|---|
@@ -253,6 +253,12 @@ These were discussed and ranked by the user. Build in this order:
 - **Object URL memory leak fixed** — photo/video preview object URLs tracked (`sheetImageObjectURL`, `sheetVideoObjectURL`) and revoked in `closeSheet()` and on file swap.
 - **Crop tool mouse listener leak fixed** — `mousemove`/`mouseup` now added per-drag gesture and removed in `closeCropModal()`.
 - **Dead state removed** — `emojiPickerPostId` was set but never read; removed entirely.
+
+### [2026-04-09] — Reliability quick wins (v4.8)
+- **`handleUseInitials` async/await** — converted `.then()` chain to `async/await` with `try/catch`; unhandled rejections (network drop during avatar remove) now surface via `showToast()` instead of silently failing.
+- **Comment append instead of full rebuild** — realtime INSERT events now call `appendComment()` (single DOM append) instead of `renderComments()` (full innerHTML clear + rebuild). Eliminates flicker and the race condition where a late-resolving `loadComments()` fetch could write into an already-closed detail view.
+- **Race condition guard in `loadComments`** — added `if (currentDetailPostId !== postId) return;` after the async fetch; stale results are silently dropped if the user closes detail before the query resolves.
+- **Moderator RLS policy applied in Supabase** — `CREATE POLICY "Moderator can delete any post" ON posts FOR DELETE TO authenticated USING (auth.email() = 'cstewch@gmail.com' OR auth.uid() = user_id)`. Moderator delete is now enforced server-side, not just client-side.
 
 ---
 

@@ -7,7 +7,7 @@
    to force clients to pick up new files immediately.
 ═══════════════════════════════════════ */
 
-const CACHE_VERSION = "tinypath-v4.7";
+const CACHE_VERSION = "tinypath-v4.8";
 const SHELL_CACHE   = `${CACHE_VERSION}-shell`;
 const IMAGE_CACHE   = `${CACHE_VERSION}-images`;
 
