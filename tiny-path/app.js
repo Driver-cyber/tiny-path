@@ -90,6 +90,7 @@ let cropMode           = 'cover'; // 'cover' | 'avatar'
    DOM REFS — AUTH
 ═══════════════════════════════════════ */
 
+const loadingScreen        = document.getElementById('loadingScreen');
 const authScreen           = document.getElementById('authScreen');
 const checkEmailScreen     = document.getElementById('checkEmailScreen');
 const displayNameScreen    = document.getElementById('displayNameScreen');
@@ -213,6 +214,7 @@ function esc(str) {
 ═══════════════════════════════════════ */
 
 function showScreen(name) {
+  loadingScreen.classList.toggle('hidden',         name !== 'loading');
   authScreen.classList.toggle('hidden',            name !== 'auth');
   checkEmailScreen.classList.toggle('hidden',      name !== 'checkemail');
   displayNameScreen.classList.toggle('hidden',     name !== 'displayname');
@@ -1134,6 +1136,12 @@ sheetImageInput.addEventListener('change', () => {
   updateSheetSubmitState();
 });
 
+// If the photo picker is dismissed without selecting anything and no photo
+// has been chosen yet, cancel the whole post and return to the main screen.
+sheetImageInput.addEventListener('cancel', () => {
+  if (sheetMode === 'photo' && !sheetImageFile) closeSheet();
+});
+
 sheetChangePhoto.addEventListener('click', () => {
   sheetImageInput.value = '';
   sheetImageInput.click();
@@ -1673,12 +1681,16 @@ function openImageModal(src) {
   modalImage.src = src;
   imageModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
 }
 
 function closeImageModal() {
   imageModal.classList.add('hidden');
   modalImage.src = '';
-  if (!currentDetailPostId) document.body.style.overflow = '';
+  if (!currentDetailPostId) {
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+  }
 }
 
 closeModal.addEventListener('click', closeImageModal);
