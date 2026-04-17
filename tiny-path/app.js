@@ -11,7 +11,83 @@ const CLOUD_NAME        = 'dqqml8dae';
 const UPLOAD_PRESET     = 'tiny-path-unsigned';
 const CHAR_LIMIT        = 300;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* ═══════════════════════════════════════
+   INDEXED-DB AUTH STORAGE
+   iOS PWA clears localStorage aggressively between launches.
+   IndexedDB is far more durable — we use it as Supabase's
+   session store, with a one-time migration from localStorage.
+═══════════════════════════════════════ */
+
+const _IDB_NAME    = 'tinypath-auth';
+const _IDB_VERSION = 1;
+const _IDB_STORE   = 'kv';
+let   _idbConn     = null;
+
+function _openAuthDB() {
+  if (_idbConn) return Promise.resolve(_idbConn);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(_IDB_NAME, _IDB_VERSION);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(_IDB_STORE)) {
+        req.result.createObjectStore(_IDB_STORE);
+      }
+    };
+    req.onsuccess = () => { _idbConn = req.result; resolve(_idbConn); };
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+const idbStorage = {
+  async getItem(key) {
+    try {
+      const db  = await _openAuthDB();
+      const val = await new Promise((resolve) => {
+        const tx  = db.transaction(_IDB_STORE, 'readonly');
+        const req = tx.objectStore(_IDB_STORE).get(key);
+        req.onsuccess = () => resolve(req.result ?? null);
+        req.onerror   = () => resolve(null);
+      });
+      if (val !== null) return val;
+      // One-time migration: if nothing in IDB, check localStorage
+      const ls = localStorage.getItem(key);
+      if (ls !== null) {
+        localStorage.removeItem(key);
+        idbStorage.setItem(key, ls); // migrate in background
+      }
+      return ls;
+    } catch { return localStorage.getItem(key); }
+  },
+  async setItem(key, value) {
+    try {
+      const db = await _openAuthDB();
+      await new Promise((resolve) => {
+        const tx = db.transaction(_IDB_STORE, 'readwrite');
+        tx.objectStore(_IDB_STORE).put(value, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror    = () => resolve();
+      });
+    } catch { localStorage.setItem(key, value); }
+  },
+  async removeItem(key) {
+    try {
+      const db = await _openAuthDB();
+      await new Promise((resolve) => {
+        const tx = db.transaction(_IDB_STORE, 'readwrite');
+        tx.objectStore(_IDB_STORE).delete(key);
+        tx.oncomplete = () => resolve();
+        tx.onerror    = () => resolve();
+      });
+    } catch { localStorage.removeItem(key); }
+  },
+};
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    storage:          idbStorage,
+    persistSession:   true,
+    autoRefreshToken: true,
+  },
+});
 
 /* ═══════════════════════════════════════
    SVG ICONS
