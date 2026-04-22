@@ -8,6 +8,7 @@
 ## 🧠 Memory & Strategy
 
 - **Read First:** Always check `DECISIONS.md` before starting any task. It tells you the current state of the project, what has been decided, and what is still open.
+- **Check the tracker:** Also read `tiny-path-tracker.html` for current priorities and what's actively being built. Update it at the end of any session that changes priorities.
 - **Measure Twice:** For any change touching more than one file, propose a brief plan and wait for an explicit "go" before writing code.
 - **Ask Before Pivoting:** If a new request seems to contradict existing code or decisions, pause and ask: *"Are we pivoting, or extending?"*
 - **Don't Assume File Contents:** Read the relevant files before editing. Only read what is necessary.
@@ -103,6 +104,12 @@ The shared emotional design goal: *a digital journal you share with your closest
 - Propose before acting on multi-file changes.
 - Prefer targeted edits over full file rewrites.
 - Ask for clarification rather than making assumptions.
+
+---
+
+## 🔧 Maintenance Rules
+
+- **Build tracker:** Update `tiny-path-tracker.html` at the end of any session that changes priorities or completes planned work. Move completed items to backlog, pull next items up, and bump the `updated` date in both the visual header and the JSON block.
 
 ---
 

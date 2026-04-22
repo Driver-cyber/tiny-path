@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tiny Path — Build Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #2C1A0E;
+      color: #F5DEB3;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      padding: 48px 24px 64px;
+    }
+
+    .page {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 40px;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .project-name {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-size: 2.2rem;
+      font-weight: 600;
+      color: #F2A24A;
+      line-height: 1;
+    }
+
+    .updated {
+      font-size: 0.78rem;
+      color: #a8895a;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .description {
+      font-size: 0.95rem;
+      color: #c4a87a;
+      line-height: 1.5;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #4a2e14;
+      margin: 24px 0 32px;
+    }
+
+    /* Board */
+    .board {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+
+    @media (min-width: 600px) {
+      .board.two-col {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Column */
+    .column {
+      background: #3a2210;
+      border: 1px solid #5a3520;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .column-header {
+      background: #4a2a12;
+      border-bottom: 1px solid #5a3520;
+      padding: 16px 20px;
+    }
+
+    .column-name {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #F2A24A;
+      line-height: 1.2;
+    }
+
+    .column-sub {
+      font-size: 0.75rem;
+      color: #9a7040;
+      margin-top: 3px;
+      letter-spacing: 0.03em;
+    }
+
+    .column-body {
+      padding: 20px;
+    }
+
+    /* Section label */
+    .section-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #7a5530;
+      margin-bottom: 12px;
+    }
+
+    /* Priority items */
+    .priorities {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .priority-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .priority-rank {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      background: #F2A24A;
+      color: #2C1A0E;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .priority-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .priority-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #F5DEB3;
+      line-height: 1.3;
+    }
+
+    .priority-note {
+      font-size: 0.78rem;
+      color: #9a7a50;
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+
+    /* Backlog */
+    .backlog-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .backlog-item {
+      font-size: 0.8rem;
+      color: #8a6a40;
+      padding-left: 14px;
+      position: relative;
+      line-height: 1.4;
+    }
+
+    .backlog-item::before {
+      content: '·';
+      position: absolute;
+      left: 4px;
+      color: #6a4a28;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 48px;
+      text-align: center;
+      font-size: 0.72rem;
+      color: #5a3a1a;
+      letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <div class="header">
+      <div class="header-top">
+        <div class="project-name">Tiny Path</div>
+        <div class="updated">Updated 2026-04-22</div>
+      </div>
+      <div class="description">Private micro social network for a small trusted friend group — vanilla JS, Supabase, Cloudflare Pages</div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="board">
+
+      <div class="column">
+        <div class="column-header">
+          <div class="column-name">tiny-path</div>
+          <div class="column-sub">Vanilla JS · Supabase · Cloudflare Pages · v4.8</div>
+        </div>
+        <div class="column-body">
+
+          <div class="section-label">Next 3 priorities</div>
+          <div class="priorities">
+            <div class="priority-item">
+              <div class="priority-rank">1</div>
+              <div class="priority-content">
+                <div class="priority-title">Web Push Notifications (PWA)</div>
+                <div class="priority-note">Add push alerts for new posts on iOS 16.4+. Closes the biggest iOS gap without a native toolchain. Requires a VAPID key, service worker push handler, and Supabase Edge Function trigger.</div>
+              </div>
+            </div>
+            <div class="priority-item">
+              <div class="priority-rank">2</div>
+              <div class="priority-content">
+                <div class="priority-title">Unread / new post indicator</div>
+                <div class="priority-note">Visual cue (dot or banner) when new posts arrive since last visit. Pairs naturally with push notifications — surface the same signal in-feed.</div>
+              </div>
+            </div>
+            <div class="priority-item">
+              <div class="priority-rank">3</div>
+              <div class="priority-content">
+                <div class="priority-title">Post deletion confirmation UI</div>
+                <div class="priority-note">Replace browser confirm() dialog with an in-app confirmation sheet. Consistent with the existing modal/sheet design language.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-label">Backlog</div>
+          <div class="backlog-list">
+            <div class="backlog-item">TestFlight via Capacitor — if PWA push isn't sufficient, wrap app in native shell for proper iOS distribution</div>
+            <div class="backlog-item">Family Path Supabase migration — blocked until a second Supabase project is provisioned</div>
+            <div class="backlog-item">Invite code gate</div>
+            <div class="backlog-item">Dark mode</div>
+            <div class="backlog-item">Threaded comments</div>
+            <div class="backlog-item">Multi-photo remove-one (currently clear all or nothing)</div>
+            <div class="backlog-item">Custom SMTP via Resend (eliminate Supabase email rate limits)</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer">driver-cyber/tiny-path · project-dashboard-6a7.pages.dev</div>
+
+  </div>
+
+  <script id="tracker-data" type="application/json">
+  {
+    "project": "Tiny Path",
+    "description": "Private micro social network for a small trusted friend group — vanilla JS, Supabase, Cloudflare Pages",
+    "updated": "2026-04-22",
+    "columns": [
+      {
+        "name": "tiny-path",
+        "sub": "Vanilla JS · Supabase · Cloudflare Pages · v4.8",
+        "priorities": [
+          {
+            "title": "Web Push Notifications (PWA)",
+            "note": "Push alerts for new posts on iOS 16.4+. VAPID key, service worker push handler, Supabase Edge Function trigger."
+          },
+          {
+            "title": "Unread / new post indicator",
+            "note": "Visual dot or banner when new posts arrive since last visit. Pairs with push notifications."
+          },
+          {
+            "title": "Post deletion confirmation UI",
+            "note": "Replace browser confirm() with an in-app confirmation sheet consistent with existing modal design."
+          }
+        ],
+        "backlog": [
+          "TestFlight via Capacitor — if PWA push isn't sufficient for iOS distribution",
+          "Family Path Supabase migration — blocked until second Supabase project provisioned",
+          "Invite code gate",
+          "Dark mode",
+          "Threaded comments",
+          "Multi-photo remove-one support",
+          "Custom SMTP via Resend (eliminate Supabase email rate limits)"
+        ]
+      }
+    ]
+  }
+  </script>
+</body>
+</html>
