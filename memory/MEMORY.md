@@ -90,4 +90,5 @@
 ## Project Tooling
 - Build tracker: `tiny-path-tracker.html` — visual priority board + `#tracker-data` JSON block
 - Feeds cross-project dashboard at project-dashboard-6a7.pages.dev
+- Dashboard wiring confirmed 2026-04-23: `{ "repo": "tiny-path", "tracker": "tiny-path-tracker" }` already present in `Driver-cyber/project-dashboard/projects.json`
 - Update tracker at end of every session that changes priorities — bump `updated` date in both header and JSON block
