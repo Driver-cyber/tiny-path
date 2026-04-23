@@ -80,3 +80,14 @@
 - No vote deduplication beyond the UNIQUE constraint
 - Multi-photo remove-one not supported (clear all or nothing)
 - Family Path still on Firebase (migration blocked by Supabase free tier)
+
+## iOS / Native Strategy
+- Decision: start with Web Push notifications on existing PWA (iOS 16.4+) before native toolchain
+- If install friction remains, next step is Capacitor + TestFlight — vanilla JS codebase ports unchanged
+- Full strategy memo: `memory/iOS-strategy-memo.md`
+- App Store is ~10% additional work once a Capacitor + TestFlight build exists
+
+## Project Tooling
+- Build tracker: `tiny-path-tracker.html` — visual priority board + `#tracker-data` JSON block
+- Feeds cross-project dashboard at project-dashboard-6a7.pages.dev
+- Update tracker at end of every session that changes priorities — bump `updated` date in both header and JSON block

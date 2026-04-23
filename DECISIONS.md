@@ -279,8 +279,15 @@ These were discussed and ranked by the user. Build in this order:
 
 ---
 
+### [2026-04-22] — iOS Strategy + Build Tracker added
+
+- **iOS exploration:** Evaluated PWA improvements, Capacitor + TestFlight, and full native rewrite. Decision: start with Web Push notifications on the existing PWA (iOS 16.4+) before investing in native toolchain. If install friction remains a problem, Capacitor + TestFlight is the next step — existing vanilla JS codebase ports unchanged, no App Store listing required. Full iOS strategy memo saved to `memory/iOS-strategy-memo.md`.
+- **Build tracker added:** `tiny-path-tracker.html` added as a founding doc. Feeds the cross-project dashboard at project-dashboard-6a7.pages.dev via the `#tracker-data` JSON block. CLAUDE.md updated to read and update the tracker each session.
+- **Initial tracker priorities:** (1) Web Push Notifications PWA, (2) Unread/new post indicator, (3) Post deletion confirmation UI
+
 ## 🔜 Next Up (Prioritized Backlog)
 
+- Web Push Notifications (PWA) — iOS 16.4+, VAPID key + service worker push handler + Supabase Edge Function trigger
 - Notification / unread indicator for new posts
 - Post deletion confirmation UI improvement (replace browser `confirm()` dialog)
 - Family Path Supabase migration
