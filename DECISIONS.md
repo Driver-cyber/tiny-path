@@ -12,7 +12,7 @@
 
 **Vibe:** "Warm & Considered." Utility first, beauty close behind. Ship, learn, iterate.
 
-**Current Version:** v4.8 · 2026-04-09
+**Current Version:** v5.1 · 2026-04-16
 
 | App | URL | Backend |
 |---|---|---|
@@ -259,6 +259,23 @@ These were discussed and ranked by the user. Build in this order:
 - **Comment append instead of full rebuild** — realtime INSERT events now call `appendComment()` (single DOM append) instead of `renderComments()` (full innerHTML clear + rebuild). Eliminates flicker and the race condition where a late-resolving `loadComments()` fetch could write into an already-closed detail view.
 - **Race condition guard in `loadComments`** — added `if (currentDetailPostId !== postId) return;` after the async fetch; stale results are silently dropped if the user closes detail before the query resolves.
 - **Moderator RLS policy applied in Supabase** — `CREATE POLICY "Moderator can delete any post" ON posts FOR DELETE TO authenticated USING (auth.email() = 'cstewch@gmail.com' OR auth.uid() = user_id)`. Moderator delete is now enforced server-side, not just client-side.
+
+### [2026-04-15] — Feed UX polish (v4.9)
+- **Smaller feed photos** — `.post-image` gains `max-height: 300px; object-fit: cover;` so tall images are capped and more posts are visible while scrolling.
+- **Image modal scroll lock** — added `touch-action: none; overscroll-behavior: none;` to `.image-modal` in CSS, plus `document.documentElement.style.overflow = 'hidden'` on `<html>` (not just `<body>`) in `openImageModal`/`closeImageModal`. Fixes iOS background scroll bleed when a photo is expanded.
+- **Photo picker cancel = close post** — added `cancel` event listener on `sheetImageInput`. If the user opens the photo picker via the radial FAB and dismisses without selecting anything (and no photo was previously chosen), the sheet closes entirely back to the main screen.
+
+### [2026-04-15] — Loading screen / session UX (v5.0)
+- **Loading screen added** — a splash screen (logo + spinner, on the warm beige background) is now the default visible state on page load. Prevents logged-in users from seeing the login form while `onAuthStateChange` resolves asynchronously.
+- `authScreen` now starts with `hidden` class in HTML.
+- `showScreen('loading')` added as a named state in screen management.
+- `loadingScreen` DOM ref added to `app.js`.
+
+### [2026-04-16] — IndexedDB auth storage for iOS PWA persistence (v5.1)
+- **Root cause:** iOS aggressively clears PWA `localStorage` (sometimes every launch under memory pressure). The Supabase session was stored there, so users had to log in every time the PWA was opened from the home screen.
+- **Fix:** Supabase client now uses a custom `idbStorage` adapter backed by IndexedDB (more durable on iOS) instead of `localStorage`. Implemented `getItem`/`setItem`/`removeItem` with a cached IDB connection (`_idbConn`) and graceful fallback to `localStorage` on IDB error.
+- **Migration:** On first `getItem` call, if IDB is empty but `localStorage` has a value, it is migrated to IDB and removed from `localStorage`. Users with a valid in-flight session are migrated transparently; those whose session had already expired log in once more and stay logged in.
+- `createClient` now passes `{ auth: { storage: idbStorage, persistSession: true, autoRefreshToken: true } }`.
 
 ---
 

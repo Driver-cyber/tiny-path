@@ -1,7 +1,7 @@
 # Tiny Path — Technical Memory
 
 ## Current State
-**Version:** v4.8 · 2026-04-09
+**Version:** v5.1 · 2026-04-16
 **Live URL:** https://tiny-path.pages.dev
 **Repo:** github.com/Driver-cyber/tiny-path
 **Deployment:** Cloudflare Pages, auto-deploys on push to main
@@ -44,6 +44,8 @@
 - Feed realtime: single postgres_changes channel, re-fetches all posts on any change
 - Auth state: onAuthStateChange handles login, logout, and session restore on page load
 - TOKEN_REFRESHED / re-SIGNED_IN mid-session: guarded by appInitialized flag — does NOT re-run profile fetch or risk kicking user to login screen
+- Session storage: custom `idbStorage` adapter backed by IndexedDB (`tinypath-auth` DB, `kv` object store) — NOT localStorage. iOS PWA clears localStorage aggressively between launches; IndexedDB is durable. Falls back to localStorage if IDB errors. One-time migration from localStorage runs on first getItem call.
+- Loading screen (`#loadingScreen`) is shown by default on page load; `authScreen` starts with `hidden` class. Logged-in users see the spinner briefly then go straight to the app — they never see the login form.
 
 ## Radial FAB
 - 4 buttons fan from bottom-right corner toward upper-left at r=130px
@@ -74,8 +76,6 @@
 
 ## Known Limitations / Future Debt
 - Feed rebuilds full DOM on every realtime update (renderFeed clears innerHTML)
-- Comment list also full-rebuilds on each new comment (could append instead)
-- Moderator delete enforced client-side only (RLS policy should also enforce it)
 - Member since derived from posts, not auth created_at
 - No vote deduplication beyond the UNIQUE constraint
 - Multi-photo remove-one not supported (clear all or nothing)
