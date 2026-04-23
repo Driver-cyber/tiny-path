@@ -262,6 +262,13 @@ These were discussed and ranked by the user. Build in this order:
 
 ---
 
+### [2026-04-23] — Dashboard wiring confirmed
+
+- **Cross-project dashboard:** Verified `tiny-path` was already present in `projects.json` in `Driver-cyber/project-dashboard` (line 4: `{ "repo": "tiny-path", "tracker": "tiny-path-tracker" }`). No change needed. Dashboard at project-dashboard-6a7.pages.dev is live and pulling `tiny-path-tracker.html`.
+- **No code changes this session.** Priorities unchanged. Next: Web Push Notifications.
+
+---
+
 ### [2026-04-22] — iOS Strategy + Build Tracker added
 
 - **iOS exploration:** Evaluated PWA improvements, Capacitor + TestFlight, and full native rewrite. Decision: start with Web Push notifications on the existing PWA (iOS 16.4+) before investing in native toolchain. If install friction remains a problem, Capacitor + TestFlight is the next step — existing vanilla JS codebase ports unchanged, no App Store listing required. Full iOS strategy memo saved to `memory/iOS-strategy-memo.md`.
