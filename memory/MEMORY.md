@@ -90,3 +90,4 @@
 - Feeds cross-project dashboard at project-dashboard-6a7.pages.dev
 - Dashboard wiring confirmed 2026-04-23: `{ "repo": "tiny-path", "tracker": "tiny-path-tracker" }` already present in `Driver-cyber/project-dashboard/projects.json`
 - Update tracker at end of every session that changes priorities — bump `updated` date in both header and JSON block
+- **`shipped` array** lives in `columns[0]` of the tracker JSON (added 2026-04-28). Shape: `{ "date": "YYYY-MM-DD", "what": "one sentence", "tags": [...], "learned": "optional" }`. Keep sorted newest-first. Add new entries here whenever a meaningful feature ships.
