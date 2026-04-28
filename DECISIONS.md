@@ -279,6 +279,16 @@ These were discussed and ranked by the user. Build in this order:
 
 ---
 
+### [2026-04-28] — Tracker shipped array added for Galaxy view
+
+- **`shipped` array added to tracker JSON block** — `tiny-path-tracker.html` `columns[0]` now contains a `shipped` array with 17 structured entries covering v1 (2026-02-23) through v4.8 (2026-04-09).
+- **Entry shape:** `{ date, what, tags, learned? }` — one sentence per item, 1–4 lowercase tags from the shared dashboard vocabulary, optional `learned` field for genuine lessons.
+- **Tags used:** `founding`, `architecture`, `cloudflare`, `ios`, `mobile`, `ux`, `animation`, `defensive-coding`.
+- **Sort order:** newest-first by date.
+- **No code changes** to the app itself this session. Next: Web Push Notifications.
+
+---
+
 ### [2026-04-23] — Dashboard wiring confirmed
 
 - **Cross-project dashboard:** Verified `tiny-path` was already present in `projects.json` in `Driver-cyber/project-dashboard` (line 4: `{ "repo": "tiny-path", "tracker": "tiny-path-tracker" }`). No change needed. Dashboard at project-dashboard-6a7.pages.dev is live and pulling `tiny-path-tracker.html`.

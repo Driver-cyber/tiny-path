@@ -208,7 +208,7 @@
     <div class="header">
       <div class="header-top">
         <div class="project-name">Tiny Path</div>
-        <div class="updated">Updated 2026-04-23</div>
+        <div class="updated">Updated 2026-04-28</div>
       </div>
       <div class="description">Private micro social network for a small trusted friend group — vanilla JS, Supabase, Cloudflare Pages</div>
     </div>
@@ -273,7 +273,7 @@
   {
     "project": "Tiny Path",
     "description": "Private micro social network for a small trusted friend group — vanilla JS, Supabase, Cloudflare Pages",
-    "updated": "2026-04-23",
+    "updated": "2026-04-28",
     "columns": [
       {
         "name": "tiny-path",
@@ -300,6 +300,95 @@
           "Threaded comments",
           "Multi-photo remove-one support",
           "Custom SMTP via Resend (eliminate Supabase email rate limits)"
+        ],
+        "shipped": [
+          {
+            "date": "2026-04-09",
+            "what": "v4.8 — realtime comment inserts now append a single DOM node instead of rebuilding the list, eliminating flicker and a race condition when detail view closes mid-fetch.",
+            "tags": ["defensive-coding", "mobile", "ux"]
+          },
+          {
+            "date": "2026-04-09",
+            "what": "v4.7 — comprehensive error hardening: all Cloudinary upload paths validated, toast notifications replace every remaining alert(), object URL and crop-tool mouse-listener memory leaks fixed.",
+            "tags": ["defensive-coding", "ux"]
+          },
+          {
+            "date": "2026-04-07",
+            "what": "v4.6 — appInitialized guard in auth listener stops iOS PWA from kicking logged-in users back to the login screen when the app wakes from background.",
+            "tags": ["ios", "mobile", "defensive-coding"],
+            "learned": "iOS PWA fires a fresh SIGNED_IN event every time the app wakes from background — guard against double-initialization from day one."
+          },
+          {
+            "date": "2026-04-07",
+            "what": "v4.5 — video posts via a 4th radial FAB button: Cloudinary /video/upload, 50 MB client-side guard, native <video> playback in feed and detail.",
+            "tags": ["mobile", "ux"]
+          },
+          {
+            "date": "2026-04-04",
+            "what": "v4.4 — tappable own reaction badges to toggle-remove a reaction; removed confusing emoji-input placeholder.",
+            "tags": ["ux", "mobile"]
+          },
+          {
+            "date": "2026-03-28",
+            "what": "v4.3 — avatar photo upload with circular canvas crop tool (pan/zoom/drag), initials editing, and full viewport zoom lock for iOS.",
+            "tags": ["ios", "mobile", "ux"]
+          },
+          {
+            "date": "2026-03-28",
+            "what": "v4.2 — full-screen profile overlay with cover photo and bio editing; native emoji keyboard via Intl.Segmenter replaces custom 16-emoji grid.",
+            "tags": ["ux", "mobile"]
+          },
+          {
+            "date": "2026-03-27",
+            "what": "v4.1 — password reset flow: forgot-password → email → set-new-password, with a flag-based fix for Supabase's PASSWORD_RECOVERY + SIGNED_IN race condition.",
+            "tags": ["mobile", "ux", "defensive-coding"]
+          },
+          {
+            "date": "2026-03-27",
+            "what": "v4.0 — per-user votes table, emoji reactions table with per-emoji breakdowns, native emoji picker, and realtime channels for all three.",
+            "tags": ["architecture", "ux", "mobile"]
+          },
+          {
+            "date": "2026-03-27",
+            "what": "Radial FAB anchored to bottom-right corner, fanning toward upper-left across a 5°–85° arc — four post types (text, photo, video, location).",
+            "tags": ["ux", "mobile", "animation"]
+          },
+          {
+            "date": "2026-03-04",
+            "what": "Firebase → Supabase PostgreSQL + Auth migration; hosting moved from Netlify to Cloudflare Pages with GitHub push-to-deploy.",
+            "tags": ["architecture", "cloudflare"],
+            "learned": "Missing profile columns cause the Supabase auth listener to timeout and appear as 'server not responding' — run ALTER TABLE immediately after adding any column to profiles in code."
+          },
+          {
+            "date": "2026-03-04",
+            "what": "Multi-photo upload: parallel Cloudinary uploads, JSON array in image_url, '+N more' badge in feed, thumbnail strip in detail view.",
+            "tags": ["mobile", "ux"]
+          },
+          {
+            "date": "2026-03-04",
+            "what": "Profile view overlay: tap any avatar or username to open a full-screen profile with cover photo, bio, post count, member since, and scrollable post list.",
+            "tags": ["mobile", "ux"]
+          },
+          {
+            "date": "2026-03-04",
+            "what": "PWA polish: network-first service worker with versioned cache busting, manifest any/maskable icon split, ARIA landmarks, WCAG AA color contrast, robots.txt.",
+            "tags": ["mobile", "ios", "founding"]
+          },
+          {
+            "date": "2026-02-26",
+            "what": "v2 — per-post votes, post detail slide-up, flat comments, user filter, day grouping (Today/Yesterday/date), swipe-to-dismiss, haptics, PWA manifest.",
+            "tags": ["founding", "mobile", "ux"]
+          },
+          {
+            "date": "2026-02-26",
+            "what": "Family Path forked as a sibling app for family use — same architecture, earth-tone palette, separate Firebase project.",
+            "tags": ["founding", "architecture"]
+          },
+          {
+            "date": "2026-02-23",
+            "what": "v1 launched — vanilla JS, Firebase Firestore, Cloudinary image hosting, localStorage username, deployed to Netlify.",
+            "tags": ["founding", "architecture"]
+          }
         ]
       }
     ]
